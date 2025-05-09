@@ -1,4 +1,3 @@
-// app/_layout.js
 import { Stack } from 'expo-router';
 
 export default function RootLayout() {
@@ -12,6 +11,9 @@ export default function RootLayout() {
         name="settings"
         options={{
           presentation: 'modal',
+          gestureDirection: 'vertical',
+          animation: "slide_from_bottom", 
+          sheetGrabberVisible: true,
           headerShown: false,
         }}
       />

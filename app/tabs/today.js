@@ -71,7 +71,9 @@ const router = useRouter();
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
+            <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.listContainer}>

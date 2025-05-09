@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
 import { useFonts } from '@expo-google-fonts/nunito/useFonts';
 import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
@@ -71,7 +70,9 @@ const router = useRouter();
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
             <Text style={styles.dateText}>{moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}</Text>
+        </TouchableOpacity>
         </View>
 
         <View style={styles.listContainer}>
