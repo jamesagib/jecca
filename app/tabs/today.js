@@ -6,9 +6,9 @@ import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import * as Haptics from 'expo-haptics';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
-const router = useRouter();
 
 export default function TodayScreen() {
+const router = useRouter();
 
   let [fontsLoaded] = useFonts({
     Nunito_800ExtraBold, 
@@ -99,19 +99,19 @@ export default function TodayScreen() {
         </View>
 
         <View style={styles.bottomBar}>
-          {tabs.map((tab) => (
-            <TouchableOpacity key={tab} onPress={() => setSelected(tab)}>
-              <Text
-                style={[
-                  styles.tabText,
-                  selected === tab && styles.selectedText,
-                ]}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {tabs.map((tab) => (
+          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'today' && styles.selectedText, // highlight current tab
+              ]}
+            >
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
