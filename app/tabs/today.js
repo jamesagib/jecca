@@ -5,8 +5,10 @@ import { useFonts } from '@expo-google-fonts/nunito/useFonts';
 import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import * as Haptics from 'expo-haptics';
 import moment from 'moment';
+import { useRouter } from 'expo-router';
+const router = useRouter();
 
-export default function App() {
+export default function TodayScreen() {
 
   let [fontsLoaded] = useFonts({
     Nunito_800ExtraBold, 
