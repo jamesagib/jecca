@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   tabText: {
-    fontSize: 22,
+    fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#ccc',
   },
