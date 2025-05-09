@@ -15,11 +15,11 @@ const router = useRouter();
   });
 
   const defaultTASKS = [
-    { id: 1, title: "pick up trash" },
-    { id: 2, title: "throw away clothes" },
-    { id: 3, title: "study for aps" },
-    { id: 4, title: "wash dishes" },
-    { id: 5, title: "charge chromebook" },
+    { id: 1, title: "pick up trash", time: "12pm"},
+    { id: 2, title: "throw away clothes", time: "1pm" },
+    { id: 3, title: "study for aps", time: "5am" },
+    { id: 4, title: "wash dishes", time: "2pm" },
+    { id: 5, title: "charge chromebook", time: "4am" },
   ];
   
   const [selected, setSelected] = useState('today');
@@ -76,7 +76,7 @@ const router = useRouter();
 
         <View style={styles.listContainer}>
           {tasks.map((item) => (
-            <TouchableOpacity key={item.id} onPress={() => toggleTask(item.id)}   onLongPress={() => handleDelete(item.id)}>
+            <TouchableOpacity style={styles.reminderContainer} key={item.id} onPress={() => toggleTask(item.id)}   onLongPress={() => handleDelete(item.id)}>
               <Text
                 style={[
                   styles.reminderName,
@@ -85,17 +85,26 @@ const router = useRouter();
               >
                 {item.title}
               </Text>
+              <View style={[styles.timeContainer, { borderColor: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" }]}>
+                    <Text style={[styles.timeText,  { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+]}>{item.time}</Text>
+                </View>
             </TouchableOpacity>
           ))}
-          <TextInput 
-            placeholderTextColor={"CFCFCF"}
-            placeholder='+ add item...'
-            style={styles.addItemInput}
-            onChangeText={newText => setText(newText)}
-            onSubmitEditing={handleSubmit} 
-            value={text}
-            autoCapitalize='none'
-          />
+          <View style={styles.newItemContainer}>
+            <TextInput 
+                placeholderTextColor={"CFCFCF"}
+                placeholder='+ add item...'
+                style={styles.addItemInput}
+                onChangeText={newText => setText(newText)}
+                onSubmitEditing={handleSubmit} 
+                value={text}
+                autoCapitalize='none'
+            />
+             <TouchableOpacity style={styles.inputTimeContainer}>
+                <Text style={styles.timeText}>7am</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.bottomBar}>
@@ -137,16 +146,51 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
+    gap: 25,
     paddingBottom: 60, // so content doesn’t hide behind the bottom bar
+  },
+  reminderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   reminderName: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
   },
+  timeContainer: {
+    width: '13%',
+    height: 25,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginLeft: 10
+  },
+  timeText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#CFCFCF',
+    textAlign: 'center',
+    lineHeight: 22,
+    padding: 1,
+  },
+  newItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addItemInput: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
+  },
+  inputTimeContainer: {
+    width: '13%',
+    height: 25,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginLeft: 10
   },
   bottomBar: {
     position: 'absolute',
@@ -164,7 +208,7 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
   selectedText: {
-    color: '#000',
+    color: '#212121',
   },
 });
 
