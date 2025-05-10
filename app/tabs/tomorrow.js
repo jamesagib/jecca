@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     width: '90%'
   },
   reminderName: {

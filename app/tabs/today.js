@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
@@ -193,7 +193,9 @@ const styles = StyleSheet.create({
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '90%'
+    justifyContent: 'center',
+    width: '90%',
+    backgroundColor: 'pink'
   },
   reminderName: {
     fontSize: 25,
