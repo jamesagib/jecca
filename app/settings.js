@@ -1,38 +1,28 @@
 import { useState } from 'react';
 import { useRef, useCallback, useMemo, useEffect } from 'react';
-import { Switch, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Switch, View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 export default function SettingsModal() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
   
-  // Define snap points - just one fixed height for better performance
   const snapPoints = useMemo(() => ['25%'], []);
   
-  // Callbacks
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {
-      // Only navigate back if sheet is closed
       router.back();
     }
   }, [router]);
   
-  // Close modal handler
-  const handleClose = useCallback(() => {
-    bottomSheetRef.current?.close();
-  }, []);
-
-  // Open the sheet when component mounts
   useEffect(() => {
-    // Setting initial index to 0 makes it open immediately
     bottomSheetRef.current?.snapToIndex(0);
   }, []);
   
-  // Custom backdrop component
   const renderBackdrop = useCallback(props => (
     <BottomSheetBackdrop
       {...props}
@@ -44,6 +34,12 @@ export default function SettingsModal() {
 
   const [isEnabled, setIsEnabled] = useState(false);
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
+
+  const clearAllReminders = async () => {
+    await SecureStore.deleteItemAsync('reminders');
+    Alert.alert('Success', 'All reminders have been cleared.');
+    router.back() // Navigate to refresh tasks
+  };
 
   return (
     <>
@@ -90,7 +86,16 @@ export default function SettingsModal() {
             
             <TouchableOpacity 
               style={styles.closeButton} 
-              onPress={handleClose}
+              onPress={() => {
+                Alert.alert(
+                  'Clear All Reminders',
+                  'Are you sure you want to clear all reminders?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'OK', onPress: clearAllReminders },
+                  ]
+                );
+              }}
               activeOpacity={0.7}
             >
               <Text style={styles.closeButtonText}>🗑️ Clear reminders</Text>
