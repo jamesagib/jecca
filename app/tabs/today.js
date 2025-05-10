@@ -52,6 +52,32 @@ export default function TodayScreen() {
     loadToggleState();
   }, []);
 
+  const reloadData = async () => {
+    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    if (storedTasks) {
+      const today = moment().format('YYYY-MM-DD');
+      const filtered = JSON.parse(storedTasks).filter(task => task.date === today);
+      setTasks(filtered);
+      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(filtered));
+    }
+
+    const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+    setRemoveAfterCompletion(storedToggle === 'true');
+  };
+
+  const clearAllReminders = async () => {
+    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    setTasks([]);
+    reloadData();
+  };
+
+  const toggleSwitch = async () => {
+    const newState = !removeAfterCompletion;
+    setRemoveAfterCompletion(newState);
+    await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
+    reloadData();
+  };
+
   const toggleTask = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (removeAfterCompletion) {
@@ -187,14 +213,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '90%',
-    backgroundColor: 'pink'
+    gap: 5
   },
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '90%',
-    backgroundColor: 'pink'
   },
   reminderName: {
     flex: 0,
@@ -202,6 +227,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#4A4A4A',
+    flexShrink: 1,
   },
   timeContainer: {
     marginLeft: 5, // Add small spacing between reminderName and timeContainer

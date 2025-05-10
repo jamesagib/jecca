@@ -46,16 +46,22 @@ export default function SettingsModal() {
     loadToggleState();
   }, []);
 
+  const reloadData = async () => {
+    const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+    setIsEnabled(storedToggle === 'true');
+  };
+
   const toggleSwitch = async () => {
     const newState = !isEnabled;
     setIsEnabled(newState);
     await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
+    reloadData();
   };
 
   const clearAllReminders = async () => {
     await SecureStore.deleteItemAsync('reminders');
     Alert.alert('Success', 'All reminders have been cleared.');
-    router.back() // Navigate to refresh tasks
+    reloadData();
   };
 
   return (
