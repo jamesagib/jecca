@@ -17,6 +17,16 @@ export default function RootLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="timePicker"
+        options={{
+          presentation: 'modal',
+          gestureDirection: 'vertical',
+          animation: "slide_from_bottom", 
+          sheetGrabberVisible: true,
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

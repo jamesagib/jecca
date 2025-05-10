@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
 import { useFonts } from '@expo-google-fonts/nunito/useFonts';
@@ -8,6 +8,7 @@ import moment from 'moment';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { WheelPicker } from 'react-native-wheel-picker-expo';
+import { useFocusEffect } from '@react-navigation/native';
 
 const STORAGE_KEY = 'reminders';
 const TOGGLE_KEY = 'remove_reminder_toggle';
@@ -22,6 +23,8 @@ export default function TodayScreen() {
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
+  const [selectedTime, setSelectedTime] = useState('7am');
+  const TIME_KEY = 'selected_time';
 
   const tabs = ['today', 'tomorrow'];
 
@@ -51,6 +54,29 @@ export default function TodayScreen() {
     };
     loadToggleState();
   }, []);
+
+  useEffect(() => {
+    const loadSelectedTime = async () => {
+      const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+      if (storedTime) {
+        setSelectedTime(storedTime);
+      }
+    };
+    loadSelectedTime();
+  }, []);
+
+  // Replace the router.addListener effect with useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      const updateTime = async () => {
+        const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+        if (storedTime) {
+          setSelectedTime(storedTime);
+        }
+      };
+      updateTime();
+    }, [])
+  );
 
   const reloadData = async () => {
     const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
@@ -96,7 +122,7 @@ export default function TodayScreen() {
     const newTask = {
       id: Date.now(),
       title: text,
-      time: '7am',
+      time: selectedTime,
       date: moment().format('YYYY-MM-DD'),
     };
     const updated = [...tasks, newTask];
@@ -118,6 +144,18 @@ export default function TodayScreen() {
     setTasks(updated);
     await saveTasks(updated);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+  };
+
+  const saveTimeForTask = async (taskId, time) => {
+    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    if (storedTasks) {
+      const tasks = JSON.parse(storedTasks);
+      const updatedTasks = tasks.map(task =>
+        task.id === taskId ? { ...task, time } : task
+      );
+      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+      setTasks(updatedTasks);
+    }
   };
 
   return (
@@ -168,8 +206,8 @@ export default function TodayScreen() {
               value={text}
               autoCapitalize='none'
             />
-            <TouchableOpacity style={styles.inputTimeContainer}>
-              <Text style={styles.timeText}>7am</Text>
+            <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
+              <Text style={styles.timeText}>{selectedTime}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -230,8 +268,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   timeContainer: {
-    marginLeft: 5, // Add small spacing between reminderName and timeContainer
-    width: 'auto',
+    marginLeft: 5,
+    minWidth: 65,
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
@@ -257,14 +295,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
   },
   inputTimeContainer: {
-    width: '15%',
-    height: 28,
+    marginLeft: 5, // Add small spacing between reminderName and timeContainer
+    minWidth: 65,
+    height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginLeft: 10,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   bottomBar: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TomorrowScreen() {
   const router = useRouter();
@@ -29,11 +30,13 @@ export default function TomorrowScreen() {
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
+  const [selectedTime, setSelectedTime] = useState('7am');
   const tabs = ['today', 'tomorrow'];
 
   const STORAGE_KEY = 'reminders_tomorrow';
   const DATE_KEY = 'reminders_tomorrow_date';
   const TOGGLE_KEY = 'remove_reminder_toggle';
+  const TIME_KEY = 'selected_time';
 
   useEffect(() => {
     const checkAndLoadTasks = async () => {
@@ -66,6 +69,29 @@ export default function TomorrowScreen() {
     };
     loadToggleState();
   }, []);
+
+  useEffect(() => {
+    const loadSelectedTime = async () => {
+      const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+      if (storedTime) {
+        setSelectedTime(storedTime);
+      }
+    };
+    loadSelectedTime();
+  }, []);
+
+  // Replace the router focus listener with useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      const updateTime = async () => {
+        const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+        if (storedTime) {
+          setSelectedTime(storedTime);
+        }
+      };
+      updateTime();
+    }, [])
+  );
 
   const reloadData = async () => {
     const storedDate = await SecureStore.getItemAsync(DATE_KEY);
@@ -117,7 +143,7 @@ export default function TomorrowScreen() {
     const newTask = {
       id: Date.now().toString(),
       title: text,
-      time: moment().add(1, 'day').format('hA'),
+      time: selectedTime,
     };
     setTasks([...tasks, newTask]);
     setText('');
@@ -139,6 +165,18 @@ export default function TomorrowScreen() {
         }
       ]
     );
+  };
+
+  const saveTimeForTask = async (taskId, time) => {
+    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    if (storedTasks) {
+      const tasks = JSON.parse(storedTasks);
+      const updatedTasks = tasks.map(task =>
+        task.id === taskId ? { ...task, time } : task
+      );
+      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+      setTasks(updatedTasks);
+    }
   };
 
   return (
@@ -200,8 +238,8 @@ export default function TomorrowScreen() {
               value={text}
               autoCapitalize='none'
             />
-            <TouchableOpacity style={styles.inputTimeContainer}>
-              <Text style={styles.timeText}>7am</Text>
+            <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
+              <Text style={styles.timeText}>{selectedTime}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -266,7 +304,7 @@ const styles = StyleSheet.create({
   },
   timeContainer: {
     marginLeft: 5, // Add small spacing between reminderName and timeContainer
-    width: 'auto',
+    minWidth: 65,
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
@@ -292,7 +330,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
   },
   inputTimeContainer: {
-    width: '15%',
+    marginLeft: 5, // Add small spacing between reminderName and timeContainer
+    minWidth: 65,
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
@@ -300,6 +339,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     marginLeft: 10,
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   bottomBar: {
     position: 'absolute',
