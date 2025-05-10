@@ -12,7 +12,7 @@ const TIME_KEY = 'selected_time';
 export default function timePicker() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['40%'], []);
+  const snapPoints = useMemo(() => ['30%'], []);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -66,9 +66,7 @@ export default function timePicker() {
           backgroundStyle={styles.sheetBackground}
           handleStyle={styles.handleStyle}
         >
-          <BottomSheetView style={styles.contentContainer}>
-            <Text style={styles.title}>Pick a Time</Text>
-            
+          <BottomSheetView style={styles.contentContainer}>            
             <DateTimePicker
               value={time}
               mode="time"
@@ -76,12 +74,11 @@ export default function timePicker() {
               onChange={(event, selectedDate) => {
                 if (selectedDate) setTime(selectedDate);
               }}
-              style={{ width: 250 }}
+              style={[{ width: '80%' }, Platform.OS === 'ios' && styles.iosTimePicker]}
+              themeVariant="light"
+              textColor="#212121"
+              accentColor="#212121"
             />
-
-            <TouchableOpacity style={styles.saveButton} onPress={saveTimeAndClose}>
-              <Text style={styles.saveButtonText}>Done</Text>
-            </TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
       </GestureHandlerRootView>
@@ -98,7 +95,6 @@ const styles = StyleSheet.create({
   },
   handleStyle: {
     paddingTop: 12,
-    paddingBottom: 8,
     backgroundColor: 'white',
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
@@ -111,26 +107,11 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    padding: 24,
+    padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 20,
+  iosTimePicker: {
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    marginBottom: 16,
   },
-  saveButton: {
-    marginTop: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: '#53d769',
-    borderRadius: 8,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-  }
 });

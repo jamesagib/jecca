@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useRef, useCallback, useMemo, useEffect } from 'react';
-import { Switch, View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { Switch, View, Text, TouchableOpacity, StyleSheet, Platform, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { openURL } from 'expo-linking';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 
@@ -125,7 +124,7 @@ export default function SettingsModal() {
               <Text style={styles.closeButtonText}>Clear reminders</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => openURL('x.com/agibjames')} ><Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://x.com/agibjames')} ><Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text></TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
       </GestureHandlerRootView>
@@ -179,8 +178,7 @@ const styles = StyleSheet.create({
     width: '96%',
     alignItems: 'center',
     backgroundColor: 'red',
-    borderRadius: 12,
-    marginBottom: 40
+    borderRadius: 12
   },
   closeButtonText: {
     color: 'white',  
@@ -208,5 +206,6 @@ const styles = StyleSheet.create({
     color: '#212121',
     textAlign: 'center',
     fontFamily: 'Nunito_800ExtraBold',
+    marginTop: 8  // Add a small top margin
   },
 });
