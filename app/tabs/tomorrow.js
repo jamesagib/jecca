@@ -1,32 +1,61 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  LayoutAnimation,
+} from 'react-native';
 import { useFonts } from '@expo-google-fonts/nunito/useFonts';
 import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 
-export default function TodayScreen() {
-const router = useRouter();
+export default function TomorrowScreen() {
+  const router = useRouter();
 
-  let [fontsLoaded] = useFonts({
-    Nunito_800ExtraBold, 
+  const [fontsLoaded] = useFonts({
+    Nunito_800ExtraBold,
   });
 
-  const defaultTASKS = [
-    { id: 1, title: "pick up trash", time: "12pm"},
-    { id: 2, title: "throw away clothes", time: "1pm" },
-    { id: 3, title: "study for aps", time: "5am" },
-    { id: 4, title: "wash dishes", time: "2pm" },
-    { id: 5, title: "charge chromebook", time: "4am" },
-  ];
-  
-  const [selected, setSelected] = useState('today');
+  const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
-  const [tasks, setTasks] = useState(defaultTASKS);
-
   const tabs = ['today', 'tomorrow'];
+
+  const STORAGE_KEY = 'reminders_tomorrow';
+  const DATE_KEY = 'reminders_tomorrow_date';
+
+  useEffect(() => {
+    const checkAndLoadTasks = async () => {
+      const storedDate = await SecureStore.getItemAsync(DATE_KEY);
+      const todayDate = moment().format('YYYY-MM-DD');
+
+      if (storedDate !== todayDate) {
+        await SecureStore.deleteItemAsync(STORAGE_KEY);
+        await SecureStore.setItemAsync(DATE_KEY, todayDate);
+        setTasks([]);
+      } else {
+        const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+        if (storedTasks) {
+          setTasks(JSON.parse(storedTasks));
+        }
+      }
+    };
+
+    checkAndLoadTasks();
+  }, []);
+
+  useEffect(() => {
+    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(tasks));
+  }, [tasks]);
 
   const toggleTask = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -37,9 +66,13 @@ const router = useRouter();
 
   const handleSubmit = () => {
     if (text.trim() === '') return;
-    const newTask = { id: tasks.length + 1, title: text };
-    setTasks([...tasks, newTask]); 
-    setText(''); 
+    const newTask = {
+      id: Date.now().toString(),
+      title: text,
+      time: moment().add(1, 'day').format('hA'),
+    };
+    setTasks([...tasks, newTask]);
+    setText('');
   };
 
   const handleDelete = (id) => {
@@ -47,37 +80,42 @@ const router = useRouter();
       "Delete Task",
       "Are you sure you want to delete this task?",
       [
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Cancel",
-          style: "cancel"
-        },
-        { text: "OK", onPress: () => deleteTask(id) }
+          text: "OK",
+          onPress: () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setTasks(tasks.filter(task => task.id !== id));
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+          }
+        }
       ]
     );
   };
-
-  const deleteTask = (id) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setTasks(tasks.filter(task => task.id !== id));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-  }
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={60} // Adjust offset to prevent bottom bar movement
+      keyboardVerticalOffset={60}
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/settings')}>
-            <Text style={styles.dateText}>{moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/settings')}>
+            <Text style={styles.dateText}>
+              {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.listContainer}>
           {tasks.map((item) => (
-            <TouchableOpacity style={styles.reminderContainer} key={item.id} onPress={() => toggleTask(item.id)}   onLongPress={() => handleDelete(item.id)}>
+            <TouchableOpacity
+              style={styles.reminderContainer}
+              key={item.id}
+              onPress={() => toggleTask(item.id)}
+              onLongPress={() => handleDelete(item.id)}
+            >
               <Text
                 style={[
                   styles.reminderName,
@@ -86,53 +124,61 @@ const router = useRouter();
               >
                 {item.title}
               </Text>
-              <View style={[styles.timeContainer, { borderColor: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" }]}>
-                    <Text style={[styles.timeText,  { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
-]}>{item.time}</Text>
-                </View>
+              <View
+                style={[
+                  styles.timeContainer,
+                  { borderColor: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.timeText,
+                    { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+                  ]}
+                >
+                  {item.time}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
-          
+
           <View style={styles.newItemContainer}>
-            <TextInput 
-                placeholderTextColor={"CFCFCF"}
-                placeholder='+ add item...'
-                style={styles.addItemInput}
-                onChangeText={newText => setText(newText)}
-                onSubmitEditing={handleSubmit} 
-                value={text}
-                autoCapitalize='none'
+            <TextInput
+              placeholderTextColor={"#CFCFCF"}
+              placeholder='+ add item...'
+              style={styles.addItemInput}
+              onChangeText={setText}
+              onSubmitEditing={handleSubmit}
+              value={text}
+              autoCapitalize='none'
             />
-             <TouchableOpacity style={styles.inputTimeContainer}>
-                <Text style={styles.timeText}>7am</Text>
+            <TouchableOpacity style={styles.inputTimeContainer}>
+              <Text style={styles.timeText}>7am</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.bottomBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
-            <Text
-              style={[
-                styles.tabText,
-                tab === 'tomorrow' && styles.selectedText, // highlight current tab
-              ]}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+          {tabs.map((tab) => (
+            <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
+              <Text
+                style={[
+                  styles.tabText,
+                  tab === 'tomorrow' && styles.selectedText,
+                ]}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
+  container: { flex: 1, backgroundColor: 'white' },
   header: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -149,11 +195,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 25,
-    paddingBottom: 60, // so content doesn’t hide behind the bottom bar
+    paddingBottom: 60,
   },
   reminderContainer: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   reminderName: {
     fontSize: 25,
@@ -166,16 +212,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginLeft: 10
-  },
-  inputTimeContainer: {
-    width: '13%',
-    height: 25,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginLeft: 10
+    marginLeft: 10,
   },
   timeText: {
     fontSize: 14,
@@ -193,6 +230,15 @@ const styles = StyleSheet.create({
   addItemInput: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
+  },
+  inputTimeContainer: {
+    width: '13%',
+    height: 25,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginLeft: 10,
   },
   bottomBar: {
     position: 'absolute',
@@ -213,4 +259,3 @@ const styles = StyleSheet.create({
     color: '#212121',
   },
 });
-
