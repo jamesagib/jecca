@@ -11,8 +11,6 @@ import {
   Platform,
   LayoutAnimation,
 } from 'react-native';
-import { useFonts } from '@expo-google-fonts/nunito/useFonts';
-import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import moment from 'moment';
@@ -21,10 +19,6 @@ import { useFocusEffect } from '@react-navigation/native';
 
 export default function TomorrowScreen() {
   const router = useRouter();
-
-  const [fontsLoaded] = useFonts({
-    Nunito_800ExtraBold,
-  });
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);

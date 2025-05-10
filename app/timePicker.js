@@ -15,15 +15,18 @@ export default function timePicker() {
   const snapPoints = useMemo(() => ['40%'], []);
   const [time, setTime] = useState(new Date());
 
+  useEffect(() => {
+    // Set the time to current time when component mounts
+    const currentTime = new Date();
+    setTime(currentTime);
+    bottomSheetRef.current?.snapToIndex(0);
+  }, []);
+
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {
       router.back();
     }
   }, [router]);
-
-  useEffect(() => {
-    bottomSheetRef.current?.snapToIndex(0);
-  }, []);
 
   const renderBackdrop = useCallback(props => (
     <BottomSheetBackdrop

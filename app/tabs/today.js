@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, LayoutAnimation } from 'react-native';
-import { useFonts } from '@expo-google-fonts/nunito/useFonts';
-import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import * as Haptics from 'expo-haptics';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
@@ -15,8 +13,6 @@ const TOGGLE_KEY = 'remove_reminder_toggle';
 
 export default function TodayScreen() {
   const router = useRouter();
-
-  let [fontsLoaded] = useFonts({ Nunito_800ExtraBold });
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);

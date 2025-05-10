@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { openURL } from 'expo-linking';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 
@@ -108,7 +109,7 @@ export default function SettingsModal() {
             </View>
             
             <TouchableOpacity 
-              style={styles.closeButton} 
+              style={styles.clearButton} 
               onPress={() => {
                 Alert.alert(
                   'Clear All Reminders',
@@ -121,8 +122,10 @@ export default function SettingsModal() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeButtonText}>🗑️ Clear reminders</Text>
+              <Text style={styles.closeButtonText}>Clear reminders</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => openURL('x.com/agibjames')} ><Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text></TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
       </GestureHandlerRootView>
@@ -170,14 +173,17 @@ const styles = StyleSheet.create({
     color: '#ADADAD',
     marginBottom: 24,
   },
-  closeButton: {
-    marginTop: 'auto',
+  clearButton: {
+    marginTop: 10,
     paddingVertical: 12,
-    width: '100%',
+    width: '96%',
     alignItems: 'center',
+    backgroundColor: 'red',
+    borderRadius: 12,
+    marginBottom: 40
   },
   closeButtonText: {
-    color: 'red',  // iOS blue
+    color: 'white',  
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
   },
@@ -196,5 +202,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
     lineHeight: 22
-  }
+  },
+  madeWithLoveText: {
+    fontSize: 16,
+    color: '#212121',
+    textAlign: 'center',
+    fontFamily: 'Nunito_800ExtraBold',
+  },
 });
