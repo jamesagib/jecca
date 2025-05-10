@@ -215,28 +215,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 25,
-    paddingBottom: 60,
+    width: '90%',
   },
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '90%'
+    width: '90%',
   },
   reminderName: {
+    flex: 0,
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
+    color: '#4A4A4A',
   },
   timeContainer: {
-    width: '13%',
+    marginLeft: 5, // Add small spacing between reminderName and timeContainer
+    width: 'auto',
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginLeft: 10,
+    paddingHorizontal: 8,
   },
   timeText: {
     fontSize: 14,
@@ -257,13 +258,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
   },
   inputTimeContainer: {
-    width: '13%',
+    width: '15%',
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginLeft: 10,
+    justifyContent: 'center',
   },
   bottomBar: {
     position: 'absolute',
