@@ -28,10 +28,12 @@ export default function TomorrowScreen() {
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
+  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const tabs = ['today', 'tomorrow'];
 
   const STORAGE_KEY = 'reminders_tomorrow';
   const DATE_KEY = 'reminders_tomorrow_date';
+  const TOGGLE_KEY = 'remove_reminder_toggle';
 
   useEffect(() => {
     const checkAndLoadTasks = async () => {
@@ -57,11 +59,25 @@ export default function TomorrowScreen() {
     SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks]);
 
+  useEffect(() => {
+    const loadToggleState = async () => {
+      const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+      setRemoveAfterCompletion(storedToggle === 'true');
+    };
+    loadToggleState();
+  }, []);
+
   const toggleTask = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setDoneTasks((prev) =>
-      prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
-    );
+    if (removeAfterCompletion) {
+      const updatedTasks = tasks.filter(task => task.id !== id);
+      setTasks(updatedTasks);
+      SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+    } else {
+      setDoneTasks((prev) =>
+        prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+      );
+    }
   };
 
   const handleSubmit = () => {
@@ -178,7 +194,12 @@ export default function TomorrowScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
+  container: { 
+    flex: 1, 
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center' 
+  },
   header: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -200,10 +221,12 @@ const styles = StyleSheet.create({
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '90%'
   },
   reminderName: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
   },
   timeContainer: {
     width: '13%',
@@ -226,6 +249,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '80%'
   },
   addItemInput: {
     fontSize: 25,

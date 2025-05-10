@@ -7,6 +7,8 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/botto
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 
+const TOGGLE_KEY = 'remove_reminder_toggle';
+
 export default function SettingsModal() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
@@ -33,7 +35,22 @@ export default function SettingsModal() {
   ), []);
 
   const [isEnabled, setIsEnabled] = useState(false);
-  const toggleSwitch = () => setIsEnabled(previousState => !previousState);
+
+  useEffect(() => {
+    const loadToggleState = async () => {
+      const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+      if (storedToggle !== null) {
+        setIsEnabled(storedToggle === 'true');
+      }
+    };
+    loadToggleState();
+  }, []);
+
+  const toggleSwitch = async () => {
+    const newState = !isEnabled;
+    setIsEnabled(newState);
+    await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
+  };
 
   const clearAllReminders = async () => {
     await SecureStore.deleteItemAsync('reminders');

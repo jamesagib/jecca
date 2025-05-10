@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { WheelPicker } from 'react-native-wheel-picker-expo';
 
 const STORAGE_KEY = 'reminders';
+const TOGGLE_KEY = 'remove_reminder_toggle';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function TodayScreen() {
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
+  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
 
   const tabs = ['today', 'tomorrow'];
 
@@ -42,11 +44,25 @@ export default function TodayScreen() {
     loadTasks();
   }, []);
 
+  useEffect(() => {
+    const loadToggleState = async () => {
+      const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+      setRemoveAfterCompletion(storedToggle === 'true');
+    };
+    loadToggleState();
+  }, []);
+
   const toggleTask = (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setDoneTasks((prev) =>
-      prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
-    );
+    if (removeAfterCompletion) {
+      const updatedTasks = tasks.filter(task => task.id !== id);
+      setTasks(updatedTasks);
+      saveTasks(updatedTasks);
+    } else {
+      setDoneTasks((prev) =>
+        prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+      );
+    }
   };
 
   const handleSubmit = async () => {
@@ -152,6 +168,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   header: {
     alignItems: 'center',
@@ -170,14 +188,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 25,
     paddingBottom: 60,
+    width: '90%'
   },
   reminderContainer: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    width: '90%'
   },
   reminderName: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
   },
   timeContainer: {
     width: '13%',
@@ -190,6 +211,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 14,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#CFCFCF',
     textAlign: 'center',
     lineHeight: 22,
     padding: 1,
@@ -198,6 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '80%'
   },
   addItemInput: {
     fontSize: 25,
