@@ -66,13 +66,29 @@ export default function timePicker() {
           backgroundStyle={styles.sheetBackground}
           handleStyle={styles.handleStyle}
         >
-          <BottomSheetView style={styles.contentContainer}>            
+          <BottomSheetView style={styles.contentContainer}>
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={saveTimeAndClose}
+              >
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              </TouchableOpacity>
+            )}
             <DateTimePicker
               value={time}
               mode="time"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
-                if (selectedDate) setTime(selectedDate);
+                if (selectedDate) {
+                  setTime(selectedDate);
+                  if (Platform.OS === 'android') {
+                    // For Android, keep the default behavior of saving and closing
+                    const formattedTime = moment(selectedDate).format('h:mma');
+                    SecureStore.setItemAsync(TIME_KEY, formattedTime);
+                    router.back();
+                  }
+                }
               }}
               style={[{ width: '80%' }, Platform.OS === 'ios' && styles.iosTimePicker]}
               themeVariant="light"
@@ -107,11 +123,28 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    padding: 10,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    width: '100%',
   },
   iosTimePicker: {
     fontFamily: 'Nunito_800ExtraBold',
+  },
+  confirmButton: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    backgroundColor: '#212121',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

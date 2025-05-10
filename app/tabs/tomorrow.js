@@ -132,12 +132,14 @@ export default function TomorrowScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (text.trim() === '') return;
+    // Get the most recent time from storage
+    const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
     const newTask = {
       id: Date.now().toString(),
       title: text,
-      time: selectedTime,
+      time: currentTime
     };
     setTasks([...tasks, newTask]);
     setText('');

@@ -115,10 +115,12 @@ export default function TodayScreen() {
 
   const handleSubmit = async () => {
     if (text.trim() === '') return;
+    // Get the most recent time from storage
+    const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
     const newTask = {
       id: Date.now(),
       title: text,
-      time: selectedTime,
+      time: currentTime,
       date: moment().format('YYYY-MM-DD'),
     };
     const updated = [...tasks, newTask];
