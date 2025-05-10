@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { WheelPicker } from 'react-native-wheel-picker-expo';
 
 const STORAGE_KEY = 'reminders';
 
@@ -214,8 +215,8 @@ const styles = StyleSheet.create({
   bottomBar: {
     position: 'absolute',
     bottom: 30,
-    left: 0,
-    right: 0,
+    left: 50,
+    right: 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 10,

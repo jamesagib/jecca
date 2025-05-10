@@ -11,7 +11,7 @@ export default function SettingsModal() {
   const bottomSheetRef = useRef(null);
   
   // Define snap points - just one fixed height for better performance
-  const snapPoints = useMemo(() => ['30%'], []);
+  const snapPoints = useMemo(() => ['25%'], []);
   
   // Callbacks
   const handleSheetChanges = useCallback((index) => {
@@ -93,7 +93,7 @@ export default function SettingsModal() {
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text style={styles.closeButtonText}>🗑️ Clear reminders</Text>
             </TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#0A84FF',  // iOS blue
+    color: 'red',  // iOS blue
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Nunito_800ExtraBold',
   },
   settingContainer: {
     flexDirection: 'row',

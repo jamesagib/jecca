@@ -243,8 +243,8 @@ const styles = StyleSheet.create({
   bottomBar: {
     position: 'absolute',
     bottom: 30,
-    left: 0,
-    right: 0,
+    left: 50,
+    right: 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 10,
