@@ -5,8 +5,17 @@ import * as Haptics from 'expo-haptics';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { WheelPicker } from 'react-native-wheel-picker-expo';
+import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from '@react-navigation/native';
+
+// Configure notifications to show when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const STORAGE_KEY = 'reminders';
 const TOGGLE_KEY = 'remove_reminder_toggle';
@@ -100,9 +109,67 @@ export default function TodayScreen() {
     reloadData();
   };
 
-  const toggleTask = (id) => {
+  // Request notification permissions on mount
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Push notifications are required for reminders to work.');
+      }
+    };
+    requestPermissions();
+  }, []);
+
+  // Schedule notification for a task
+  const scheduleNotification = async (task) => {
+    try {
+      // Cancel any existing notification for this task
+      if (task.notificationId) {
+        await Notifications.cancelScheduledNotificationAsync(task.notificationId);
+      }
+
+      // Parse the time string (e.g., "7am" or "3:30pm")
+      const timeStr = task.time.toLowerCase();
+      const now = moment();
+      const taskTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
+      
+      // Set the notification time for today
+      const notificationTime = moment()
+        .hour(taskTime.hour())
+        .minute(taskTime.minute())
+        .second(0);
+
+      // If the time has already passed today, don't schedule
+      if (notificationTime.isBefore(now)) {
+        return;
+      }
+
+      // Schedule the notification
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Reminder',
+          body: `${task.title}`,
+          sound: true,
+        },
+        trigger: {
+          date: notificationTime.toDate(),
+        },
+      });
+
+      // Save the notification ID with the task
+      return notificationId;
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+    }
+  };
+
+  const toggleTask = async (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (removeAfterCompletion) {
+      const task = tasks.find(t => t.id === id);
+      if (task?.notificationId) {
+        await Notifications.cancelScheduledNotificationAsync(task.notificationId);
+      }
       const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
@@ -123,6 +190,13 @@ export default function TodayScreen() {
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
     };
+
+    // Schedule notification and get notification ID
+    const notificationId = await scheduleNotification(newTask);
+    if (notificationId) {
+      newTask.notificationId = notificationId;
+    }
+
     const updated = [...tasks, newTask];
     setTasks(updated);
     setText('');
@@ -138,6 +212,10 @@ export default function TodayScreen() {
 
   const deleteTask = async (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const task = tasks.find(t => t.id === id);
+    if (task?.notificationId) {
+      await Notifications.cancelScheduledNotificationAsync(task.notificationId);
+    }
     const updated = tasks.filter(task => task.id !== id);
     setTasks(updated);
     await saveTasks(updated);
