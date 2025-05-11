@@ -22,6 +22,10 @@
         "resizeMode": "contain",
         "backgroundColor": "#CFCFCF",
         "fadeOutDuration": 500
+      },
+      "bundleIdentifier": "com.jamesagib.jecca",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -48,7 +52,9 @@
         {
           "icon": "./assets/splash-icon.png",
           "color": "#ffffff",
-          "sounds": ["./assets/notification.wav"]
+          "sounds": [
+            "./assets/notification.wav"
+          ]
         }
       ]
     ],
@@ -58,6 +64,12 @@
       "iosDisplayInForeground": true,
       "androidMode": "default",
       "androidCollapsedTitle": "Reminder"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0be2e439-23c0-41fb-9351-824b644439c0"
+      }
     }
   }
 }

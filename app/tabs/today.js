@@ -70,7 +70,6 @@ export default function TodayScreen() {
     loadSelectedTime();
   }, []);
 
-  // Replace the router.addListener effect with useFocusEffect
   useFocusEffect(
     useCallback(() => {
       const updateTime = async () => {
@@ -120,10 +119,8 @@ export default function TodayScreen() {
     requestPermissions();
   }, []);
 
-  // Schedule notification for a task
   const scheduleNotification = async (task) => {
     try {
-      // Cancel any existing notification for this task
       if (task.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
@@ -131,16 +128,17 @@ export default function TodayScreen() {
       // Parse the time string (e.g., "7am" or "3:30pm")
       const timeStr = task.time.toLowerCase();
       const now = moment();
-      const taskTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
+      let notificationTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
       
-      // Set the notification time for today
-      const notificationTime = moment()
-        .hour(taskTime.hour())
-        .minute(taskTime.minute())
-        .second(0);
+      // Set notification for today with the selected time
+      notificationTime = moment()
+        .hours(notificationTime.hours())
+        .minutes(notificationTime.minutes())
+        .seconds(0);
 
       // If the time has already passed today, don't schedule
       if (notificationTime.isBefore(now)) {
+        console.log('Time has already passed for today, not scheduling notification');
         return;
       }
 
@@ -152,7 +150,9 @@ export default function TodayScreen() {
           sound: true,
         },
         trigger: {
-          date: notificationTime.toDate(),
+          hour: notificationTime.hours(),
+          minute: notificationTime.minutes(),
+          repeats: false
         },
       });
 
@@ -182,7 +182,6 @@ export default function TodayScreen() {
 
   const handleSubmit = async () => {
     if (text.trim() === '') return;
-    // Get the most recent time from storage
     const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
     const newTask = {
       id: Date.now(),
@@ -191,7 +190,6 @@ export default function TodayScreen() {
       date: moment().format('YYYY-MM-DD'),
     };
 
-    // Schedule notification and get notification ID
     const notificationId = await scheduleNotification(newTask);
     if (notificationId) {
       newTask.notificationId = notificationId;
