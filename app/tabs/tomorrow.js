@@ -236,6 +236,21 @@ export default function TomorrowScreen() {
     }
   };
 
+  const wouldBeOverdue = (time) => {
+    const timeStr = time.toLowerCase();
+    const now = moment();
+    const reminderTime = moment(timeStr, ['ha', 'h:mma']);
+    
+    // Set the reminder time to tomorrow's date
+    const tomorrowReminderTime = moment()
+      .add(1, 'day')
+      .hours(reminderTime.hours())
+      .minutes(reminderTime.minutes())
+      .seconds(0);
+    
+    return now.isAfter(tomorrowReminderTime);
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -262,7 +277,10 @@ export default function TomorrowScreen() {
               <Text
                 style={[
                   styles.reminderName,
-                  { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+                  { 
+                    color: wouldBeOverdue(item.time) ? "#FF0000" : 
+                           doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                  }
                 ]}
               >
                 {item.title}
@@ -270,13 +288,19 @@ export default function TomorrowScreen() {
               <View
                 style={[
                   styles.timeContainer,
-                  { borderColor: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+                  { 
+                    borderColor: wouldBeOverdue(item.time) ? "#FF0000" : 
+                                doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                  }
                 ]}
               >
                 <Text
                   style={[
                     styles.timeText,
-                    { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" },
+                    { 
+                      color: wouldBeOverdue(item.time) ? "#FF0000" : 
+                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                    }
                   ]}
                 >
                   {item.time}

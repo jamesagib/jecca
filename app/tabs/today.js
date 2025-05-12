@@ -207,6 +207,20 @@ export default function TodayScreen() {
     }
   };
 
+  const isOverdue = (time) => {
+    const timeStr = time.toLowerCase();
+    const now = moment();
+    const reminderTime = moment(timeStr, ['ha', 'h:mma']);
+    
+    // Set the reminder time to today's date
+    const todayReminderTime = moment()
+      .hours(reminderTime.hours())
+      .minutes(reminderTime.minutes())
+      .seconds(0);
+    
+    return moment().isAfter(todayReminderTime);
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -229,15 +243,33 @@ export default function TodayScreen() {
               onLongPress={() => handleDelete(item.id)}
             >
               <Text
-                style={[styles.reminderName, { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" }]}
+                style={[
+                  styles.reminderName,
+                  { 
+                    color: isOverdue(item.time) ? "#FF0000" : 
+                           doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                  }
+                ]}
               >
                 {item.title}
               </Text>
               <View
-                style={[styles.timeContainer, { borderColor: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" }]}
+                style={[
+                  styles.timeContainer,
+                  { 
+                    borderColor: isOverdue(item.time) ? "#FF0000" : 
+                                doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                  }
+                ]}
               >
                 <Text
-                  style={[styles.timeText, { color: doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" }]}
+                  style={[
+                    styles.timeText,
+                    { 
+                      color: isOverdue(item.time) ? "#FF0000" : 
+                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                    }
+                  ]}
                 >
                   {item.time}
                 </Text>
