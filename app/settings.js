@@ -64,6 +64,11 @@ export default function SettingsModal() {
     reloadData();
   };
 
+  const resetOnboarding = async () => {
+    await SecureStore.deleteItemAsync('onboardingComplete');
+    Alert.alert('Success', 'Onboarding reset. Please restart the app to see onboarding screens.');
+  };
+
   return (
     <>
       {/* Screen options for transparent modal */}
@@ -122,6 +127,23 @@ export default function SettingsModal() {
               activeOpacity={0.7}
             >
               <Text style={styles.closeButtonText}>Clear reminders</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.clearButton, { backgroundColor: '#007AFF', marginTop: 10 }]} 
+              onPress={() => {
+                Alert.alert(
+                  'Reset Onboarding',
+                  'Do you want to view the onboarding screens again?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'OK', onPress: resetOnboarding },
+                  ]
+                );
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.closeButtonText}>View Onboarding Screens</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => Linking.openURL('https://x.com/agibjames')} ><Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text></TouchableOpacity>

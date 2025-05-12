@@ -8,12 +8,14 @@ export default function Onboarding1() {
         <Text style={styles.title}>welcome to the simplest app on your phone: jecca.</Text>
         <Text style={styles.subtitle}>we're going to show you how to use the app, & don't worry, no login needed.</Text>
       </View>
-      <Pressable 
-        style={styles.button}
-        onPress={() => router.push('/onboarding2')}
-      >
-        <Text style={styles.buttonText}>next</Text>
-      </Pressable>
+      <View style={styles.buttonContainer}>
+        <Pressable 
+          style={styles.button}
+          onPress={() => router.push('/onboarding2')}
+        >
+          <Text style={styles.buttonText}>next</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -38,6 +40,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#666',
+  },
+  buttonContainer: {
+    paddingBottom: 34,
   },
   button: {
     backgroundColor: '#000',

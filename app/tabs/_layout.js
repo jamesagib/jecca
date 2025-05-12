@@ -6,7 +6,8 @@ export default memo(function TabsLayout() {
     <Tabs 
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { display: 'none' }
+        tabBarStyle: { display: 'none' },
+        animation: 'none'
       }}
     >
       <Tabs.Screen name="today" />

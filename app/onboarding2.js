@@ -8,12 +8,14 @@ export default function Onboarding2() {
         <Text style={styles.title}>every day, add your daily tasks. you can even add tasks for the next day.</Text>
         <Text style={styles.subtitle}>all your reminders are stored locally. we do not save anything on our servers.</Text>
       </View>
-      <Pressable 
-        style={styles.button}
-        onPress={() => router.push('/onboarding3')}
-      >
-        <Text style={styles.buttonText}>next</Text>
-      </Pressable>
+      <View style={styles.buttonContainer}>
+        <Pressable 
+          style={styles.button}
+          onPress={() => router.push('/onboarding3')}
+        >
+          <Text style={styles.buttonText}>next</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -31,12 +33,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
     color: '#666',
+  },
+  buttonContainer: {
+    paddingBottom: 34,
   },
   button: {
     backgroundColor: '#000',
@@ -47,6 +53,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Nunito_800ExtraBold',
   },
 });

@@ -108,16 +108,7 @@ export default function TodayScreen() {
     reloadData();
   };
 
-  // Request notification permissions on mount
-  useEffect(() => {
-    const requestPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Push notifications are required for reminders to work.');
-      }
-    };
-    requestPermissions();
-  }, []);
+  // Removed duplicate notification permission request since it's handled in onboarding
 
   const scheduleNotification = async (task) => {
     try {

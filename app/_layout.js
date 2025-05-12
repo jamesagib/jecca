@@ -15,9 +15,8 @@ export default function RootLayout() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
   useEffect(() => {
-    if (!fontsLoaded) return;
-
     async function prepare() {
+      if (!fontsLoaded) return;
       try {
         const status = await SecureStore.getItemAsync('onboardingComplete');
         setIsOnboardingComplete(status === 'true');
@@ -38,7 +37,7 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'none'}}>
         {!isOnboardingComplete ? (
           <>
             <Stack.Screen name="onboarding1" options={{ headerShown: false,}} />
