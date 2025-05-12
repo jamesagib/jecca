@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SecureStore from 'expo-secure-store';
@@ -37,12 +37,15 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'none'}}>
+      <Stack screenOptions={{ 
+        headerShown: false,
+        animation: 'none'
+      }}>
         {!isOnboardingComplete ? (
           <>
-            <Stack.Screen name="onboarding1" options={{ headerShown: false,}} />
-            <Stack.Screen name="onboarding2" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding3" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding1" />
+            <Stack.Screen name="onboarding2" />
+            <Stack.Screen name="onboarding3" />
           </>
         ) : (
           <>
@@ -50,17 +53,17 @@ export default function RootLayout() {
             <Stack.Screen
               name="settings"
               options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-                headerShown: false,
+                presentation: 'transparentModal',
+                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+                contentStyle: { backgroundColor: 'transparent' },
               }}
             />
             <Stack.Screen
               name="timePicker"
               options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-                headerShown: false,
+                presentation: 'transparentModal',
+                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+                contentStyle: { backgroundColor: 'transparent' },
               }}
             />
           </>

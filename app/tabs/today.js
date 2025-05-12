@@ -19,6 +19,7 @@ Notifications.setNotificationHandler({
 
 const STORAGE_KEY = 'reminders';
 const TOGGLE_KEY = 'remove_reminder_toggle';
+const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -29,45 +30,32 @@ export default function TodayScreen() {
   const [tasks, setTasks] = useState([]);
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7am');
-  const TIME_KEY = 'selected_time';
 
   const tabs = ['today', 'tomorrow'];
 
-  const loadTasks = async () => {
-    const data = await SecureStore.getItemAsync(STORAGE_KEY);
-    if (!data) return;
-    const all = JSON.parse(data);
-    const today = moment().format('YYYY-MM-DD');
-    // Clear expired
-    const filtered = all.filter(task => task.date === today);
-    setTasks(filtered);
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(filtered));
-  };
-
-  const saveTasks = async (newTasks) => {
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(newTasks));
-  };
-
   useEffect(() => {
-    loadTasks();
-  }, []);
+    const loadInitialData = async () => {
+      // Load tasks
+      const data = await SecureStore.getItemAsync(STORAGE_KEY);
+      if (data) {
+        const all = JSON.parse(data);
+        const today = moment().format('YYYY-MM-DD');
+        const filtered = all.filter(task => task.date === today);
+        setTasks(filtered);
+      }
 
-  useEffect(() => {
-    const loadToggleState = async () => {
+      // Load toggle state
       const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
       setRemoveAfterCompletion(storedToggle === 'true');
-    };
-    loadToggleState();
-  }, []);
 
-  useEffect(() => {
-    const loadSelectedTime = async () => {
+      // Load time
       const storedTime = await SecureStore.getItemAsync(TIME_KEY);
       if (storedTime) {
         setSelectedTime(storedTime);
       }
     };
-    loadSelectedTime();
+
+    loadInitialData();
   }, []);
 
   useFocusEffect(
@@ -88,7 +76,6 @@ export default function TodayScreen() {
       const today = moment().format('YYYY-MM-DD');
       const filtered = JSON.parse(storedTasks).filter(task => task.date === today);
       setTasks(filtered);
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(filtered));
     }
 
     const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
@@ -105,7 +92,6 @@ export default function TodayScreen() {
     const newState = !removeAfterCompletion;
     setRemoveAfterCompletion(newState);
     await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
-    reloadData();
   };
 
   // Removed duplicate notification permission request since it's handled in onboarding

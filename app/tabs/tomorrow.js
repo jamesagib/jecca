@@ -43,7 +43,8 @@ export default function TomorrowScreen() {
   const TIME_KEY = 'selected_time';
 
   useEffect(() => {
-    const checkAndLoadTasks = async () => {
+    const loadInitialData = async () => {
+      // Load tasks and check date
       const storedDate = await SecureStore.getItemAsync(DATE_KEY);
       const todayDate = moment().format('YYYY-MM-DD');
 
@@ -57,34 +58,22 @@ export default function TomorrowScreen() {
           setTasks(JSON.parse(storedTasks));
         }
       }
-    };
 
-    checkAndLoadTasks();
-  }, []);
-
-  useEffect(() => {
-    SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    const loadToggleState = async () => {
+      // Load toggle state
       const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
       setRemoveAfterCompletion(storedToggle === 'true');
-    };
-    loadToggleState();
-  }, []);
 
-  useEffect(() => {
-    const loadSelectedTime = async () => {
+      // Load time
       const storedTime = await SecureStore.getItemAsync(TIME_KEY);
       if (storedTime) {
         setSelectedTime(storedTime);
       }
     };
-    loadSelectedTime();
+
+    loadInitialData();
   }, []);
 
-  // Replace the router focus listener with useFocusEffect
+  // Remove redundant useEffects and keep only the focus effect for time updates
   useFocusEffect(
     useCallback(() => {
       const updateTime = async () => {
@@ -146,18 +135,9 @@ export default function TomorrowScreen() {
   };
 
   const reloadData = async () => {
-    const storedDate = await SecureStore.getItemAsync(DATE_KEY);
-    const todayDate = moment().format('YYYY-MM-DD');
-
-    if (storedDate !== todayDate) {
-      await SecureStore.deleteItemAsync(STORAGE_KEY);
-      await SecureStore.setItemAsync(DATE_KEY, todayDate);
-      setTasks([]);
-    } else {
-      const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      }
+    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    if (storedTasks) {
+      setTasks(JSON.parse(storedTasks));
     }
 
     const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
@@ -171,10 +151,9 @@ export default function TomorrowScreen() {
   };
 
   const toggleSwitch = async () => {
-    const newToggleState = !removeAfterCompletion;
-    setRemoveAfterCompletion(newToggleState);
-    await SecureStore.setItemAsync(TOGGLE_KEY, newToggleState.toString());
-    reloadData();
+    const newState = !removeAfterCompletion;
+    setRemoveAfterCompletion(newState);
+    await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
   };
 
   // Modify toggleTask to cancel notification if task is completed

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -9,17 +9,30 @@ import moment from 'moment';
 
 const TIME_KEY = 'selected_time';
 
-export default function timePicker() {
+export default function TimePicker() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['30%'], []);
+  const snapPoints = useMemo(() => ['40%'], []);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    // Set the time to current time when component mounts
-    const currentTime = new Date();
-    setTime(currentTime);
-    bottomSheetRef.current?.snapToIndex(0);
+    const loadInitialTime = async () => {
+      try {
+        const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+        if (storedTime) {
+          const parsedTime = moment(storedTime, 'h:mma').toDate();
+          setTime(parsedTime);
+        }
+      } catch (error) {
+        console.error('Error loading initial time:', error);
+      }
+    };
+    
+    loadInitialTime();
+    // Delay the opening of the bottom sheet slightly to ensure smooth animation
+    setTimeout(() => {
+      bottomSheetRef.current?.snapToIndex(0);
+    }, 100);
   }, []);
 
   const handleSheetChanges = useCallback((index) => {
@@ -34,76 +47,72 @@ export default function timePicker() {
       disappearsOnIndex={-1}
       appearsOnIndex={0}
       opacity={0.5}
+      pressBehavior="close"
     />
   ), []);
 
-  const saveTimeAndClose = async () => {
-    const formattedTime = moment(time).format('h:mma');
-    await SecureStore.setItemAsync(TIME_KEY, formattedTime);
-    router.back();
+  const handleTimeChange = (event, selectedDate) => {
+    if (selectedDate) {
+      setTime(selectedDate);
+      if (Platform.OS === 'android') {
+        handleSave(selectedDate);
+      }
+    }
+  };
+
+  const handleSave = async (selectedTime = time) => {
+    try {
+      const formattedTime = moment(selectedTime).format('h:mma');
+      await SecureStore.setItemAsync(TIME_KEY, formattedTime);
+      router.back();
+    } catch (error) {
+      console.error('Error saving time:', error);
+    }
   };
 
   return (
-    <>
-      <Stack.Screen 
-        options={{
-          headerShown: false,
-          presentation: 'transparentModal',
-          animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-          contentStyle: { backgroundColor: 'transparent' },
-        }} 
-      />
-      
-      <GestureHandlerRootView style={styles.container}>
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={0}
-          snapPoints={snapPoints}
-          onChange={handleSheetChanges}
-          enablePanDownToClose={true}
-          backdropComponent={renderBackdrop}
-          handleIndicatorStyle={styles.handleIndicator}
-          backgroundStyle={styles.sheetBackground}
-          handleStyle={styles.handleStyle}
-        >
-          <BottomSheetView style={styles.contentContainer}>
-            {Platform.OS === 'ios' && (
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={saveTimeAndClose}
-              >
-                <Text style={styles.confirmButtonText}>Confirm</Text>
-              </TouchableOpacity>
-            )}
-            <DateTimePicker
-              value={time}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, selectedDate) => {
-                if (selectedDate) {
-                  setTime(selectedDate);
-                  if (Platform.OS === 'android') {
-                    // For Android, keep the default behavior of saving and closing
-                    const formattedTime = moment(selectedDate).format('h:mma');
-                    SecureStore.setItemAsync(TIME_KEY, formattedTime);
-                    router.back();
-                  }
-                }
-              }}
-              style={[{ width: '80%' }, Platform.OS === 'ios' && styles.iosTimePicker]}
-              themeVariant="light"
-              textColor="#212121"
-              accentColor="#212121"
-            />
-          </BottomSheetView>
-        </BottomSheet>
-      </GestureHandlerRootView>
-    </>
+    <GestureHandlerRootView style={styles.container}>
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        onChange={handleSheetChanges}
+        enablePanDownToClose={true}
+        backdropComponent={renderBackdrop}
+        handleIndicatorStyle={styles.handleIndicator}
+        backgroundStyle={styles.sheetBackground}
+        handleStyle={styles.handleStyle}
+        enableContentPanningGesture={true}
+        enableHandlePanningGesture={true}
+      >
+        <BottomSheetView style={styles.contentContainer}>
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={() => handleSave()}
+            >
+              <Text style={styles.confirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          )}
+          <DateTimePicker
+            testID="timePicker"
+            value={time}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTimeChange}
+            style={styles.timePicker}
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent'
+  },
   sheetBackground: {
     backgroundColor: 'white',
     borderTopLeftRadius: 25,
@@ -126,25 +135,22 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    width: '100%',
   },
-  iosTimePicker: {
-    fontFamily: 'Nunito_800ExtraBold',
+  timePicker: {
+    width: Platform.OS === 'ios' ? '100%' : 'auto',
+    height: Platform.OS === 'ios' ? 200 : 'auto',
   },
   confirmButton: {
-    position: 'absolute',
-    top: 0,
-    right: 16,
+    alignSelf: 'flex-end',
     backgroundColor: '#212121',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    zIndex: 1,
+    marginBottom: 8,
   },
   confirmButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+  }
 });
