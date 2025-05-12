@@ -1,61 +1,45 @@
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
+import * as SecureStore from 'expo-secure-store';
+import { Redirect } from 'expo-router';
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
-
-SplashScreen.setOptions({
-  duration: 1000,
-  fade: true,
-});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Nunito_800ExtraBold,
   });
+  const [initialRoute, setInitialRoute] = useState(null);
 
   useEffect(() => {
-    const prepare = async () => {
-      try {
-        // Pre-load fonts, make any API calls you need to do here
-        await Promise.all([
-          // Add any other initialization logic here
-        ]);
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        // Tell the application to render
-        if (fontsLoaded) {
-          await SplashScreen.hideAsync();
-        }
-      }
-    };
+    if (!fontsLoaded) return;
 
-    prepare();
+    SecureStore.getItemAsync('onboardingComplete')
+      .then(status => {
+        setInitialRoute(status === 'true' ? '/tabs/today' : '/onboarding1');
+        SplashScreen.hideAsync();
+      })
+      .catch(() => {
+        setInitialRoute('/onboarding1');
+        SplashScreen.hideAsync();
+      });
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !initialRoute) {
     return null;
   }
 
   return (
-    <Stack screenOptions={{
-        headerShown: false,
-        animation: 'fade'
-      }}>
-      <Stack.Screen name="(tabs)" options={{ 
-        headerShown: false,
-        animation: 'none'
-      }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="tabs" />
       <Stack.Screen
         name="settings"
         options={{
           presentation: 'modal',
-          gestureDirection: 'vertical',
-          animation: "slide_from_bottom", 
-          sheetGrabberVisible: true,
+          animation: 'slide_from_bottom',
           headerShown: false,
         }}
       />
@@ -63,24 +47,14 @@ export default function RootLayout() {
         name="timePicker"
         options={{
           presentation: 'modal',
-          gestureDirection: 'vertical',
-          animation: "slide_from_bottom", 
-          sheetGrabberVisible: true,
+          animation: 'slide_from_bottom',
           headerShown: false,
         }}
       />
-      <Stack.Screen name="onboarding1" options={{ 
-        headerShown: false,
-        animation: 'none'
-      }} />
-      <Stack.Screen name="onboarding2" options={{ 
-        headerShown: false,
-        animation: 'none'
-      }} />
-      <Stack.Screen name="onboarding3" options={{ 
-        headerShown: false,
-        animation: 'none'
-      }} />
+      <Stack.Screen name="onboarding1" />
+      <Stack.Screen name="onboarding2" />
+      <Stack.Screen name="onboarding3" />
+      {initialRoute && <Redirect href={initialRoute} />}
     </Stack>
   );
 }

@@ -1,10 +1,16 @@
-// app/(tabs)/_layout.js
-import { Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
+import { memo } from 'react';
 
-export default function TabsLayout() {
-  return <Stack screenOptions={{
-    headerShown: false,
-    animation: 'fade',
-    presentation: 'transparentModal'
-  }} />;
-}
+export default memo(function TabsLayout() {
+  return (
+    <Tabs 
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { display: 'none' }
+      }}
+    >
+      <Tabs.Screen name="today" />
+      <Tabs.Screen name="tomorrow" />
+    </Tabs>
+  );
+});
