@@ -1,10 +1,9 @@
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SecureStore from 'expo-secure-store';
-import { Redirect } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -12,49 +11,62 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Nunito_800ExtraBold,
   });
-  const [initialRoute, setInitialRoute] = useState(null);
+  const [initializing, setInitializing] = useState(true);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
   useEffect(() => {
     if (!fontsLoaded) return;
 
-    SecureStore.getItemAsync('onboardingComplete')
-      .then(status => {
-        setInitialRoute(status === 'true' ? '/tabs/today' : '/onboarding1');
-        SplashScreen.hideAsync();
-      })
-      .catch(() => {
-        setInitialRoute('/onboarding1');
-        SplashScreen.hideAsync();
-      });
+    async function prepare() {
+      try {
+        const status = await SecureStore.getItemAsync('onboardingComplete');
+        setIsOnboardingComplete(status === 'true');
+      } catch (e) {
+        setIsOnboardingComplete(false);
+      } finally {
+        setInitializing(false);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
   }, [fontsLoaded]);
 
-  if (!fontsLoaded || !initialRoute) {
+  if (!fontsLoaded || initializing) {
     return null;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="tabs" />
-      <Stack.Screen
-        name="settings"
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="timePicker"
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen name="onboarding1" />
-      <Stack.Screen name="onboarding2" />
-      <Stack.Screen name="onboarding3" />
-      {initialRoute && <Redirect href={initialRoute} />}
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        {!isOnboardingComplete ? (
+          <>
+            <Stack.Screen name="onboarding1" options={{ headerShown: false,}} />
+            <Stack.Screen name="onboarding2" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding3" options={{ headerShown: false }} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="tabs" />
+            <Stack.Screen
+              name="settings"
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="timePicker"
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+                headerShown: false,
+              }}
+            />
+          </>
+        )}
+      </Stack>
+    </View>
   );
 }
