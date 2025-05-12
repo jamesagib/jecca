@@ -118,10 +118,16 @@ export default function TomorrowScreen() {
 
       // Parse the time string (e.g., "7am" or "3:30pm")
       const timeStr = task.time.toLowerCase();
-      const tomorrow = moment().add(1, 'day');
-      const taskTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
+      const now = moment();
+      let notificationTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
+      
+      // Set notification for tomorrow with the selected time
+      notificationTime = moment()
+        .add(1, 'day')
+        .hours(notificationTime.hours())
+        .minutes(notificationTime.minutes())
+        .seconds(0);
 
-      // Schedule the notification for tomorrow at the specified time
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
@@ -129,11 +135,7 @@ export default function TomorrowScreen() {
           sound: true,
         },
         trigger: {
-          date: tomorrow
-            .hours(taskTime.hours())
-            .minutes(taskTime.minutes())
-            .seconds(0)
-            .toDate(),
+          date: notificationTime.toDate(),
         },
       });
 

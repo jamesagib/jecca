@@ -142,7 +142,7 @@ export default function TodayScreen() {
         return;
       }
 
-      // Schedule the notification
+      // Schedule the notification with proper date
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
@@ -150,9 +150,7 @@ export default function TodayScreen() {
           sound: true,
         },
         trigger: {
-          hour: notificationTime.hours(),
-          minute: notificationTime.minutes(),
-          repeats: false
+          date: notificationTime.toDate(), // Use the full date object
         },
       });
 
