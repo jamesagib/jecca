@@ -4,6 +4,7 @@ import { View, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SecureStore from 'expo-secure-store';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,11 +37,14 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ 
-        headerShown: false,
-        animation: 'none'
-      }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          contentStyle: { backgroundColor: 'transparent' }
+        }}
+      >
         {!isOnboardingComplete ? (
           <>
             <Stack.Screen name="onboarding1" />
@@ -55,7 +59,6 @@ export default function RootLayout() {
               options={{
                 presentation: 'transparentModal',
                 animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-                contentStyle: { backgroundColor: 'transparent' },
               }}
             />
             <Stack.Screen
@@ -63,12 +66,11 @@ export default function RootLayout() {
               options={{
                 presentation: 'transparentModal',
                 animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-                contentStyle: { backgroundColor: 'transparent' },
               }}
             />
           </>
         )}
       </Stack>
-    </View>
+    </GestureHandlerRootView>
   );
 }
