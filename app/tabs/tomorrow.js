@@ -27,6 +27,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const TASKS_KEY = 'tasks';
+const TOGGLE_KEY = 'remove_reminder_toggle';
+const TIME_KEY = 'selected_time';
+const REPEAT_KEY = 'selected_repeat';
+
 export default function TomorrowScreen() {
   const router = useRouter();
 
@@ -37,35 +42,24 @@ export default function TomorrowScreen() {
   const [selectedTime, setSelectedTime] = useState('7am');
   const tabs = ['today', 'tomorrow'];
 
-  const STORAGE_KEY = 'reminders_tomorrow';
   const DATE_KEY = 'reminders_tomorrow_date';
-  const TOGGLE_KEY = 'remove_reminder_toggle';
-  const TIME_KEY = 'selected_time';
-  const REPEAT_KEY = 'repeat_option';
 
   useEffect(() => {
     const loadInitialData = async () => {
-      // Load tasks and check date
-      const storedDate = await SecureStore.getItemAsync(DATE_KEY);
-      const todayDate = moment().format('YYYY-MM-DD');
-
-      if (storedDate !== todayDate) {
-        await SecureStore.deleteItemAsync(STORAGE_KEY);
-        await SecureStore.setItemAsync(DATE_KEY, todayDate);
-        setTasks([]);
-      } else {
-        const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
-        if (storedTasks) {
-          setTasks(JSON.parse(storedTasks));
-        }
+      // Load tasks
+      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      if (storedTasks) {
+        const allTasks = JSON.parse(storedTasks);
+        const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
+        const filtered = allTasks.filter(task => task.date === tomorrow);
+        setTasks(filtered);
       }
 
-      // Load toggle state
+      // Load toggle and time settings
       const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
-      setRemoveAfterCompletion(storedToggle === 'true');
-
-      // Load time
       const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+      
+      setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
         setSelectedTime(storedTime);
       }
@@ -74,16 +68,26 @@ export default function TomorrowScreen() {
     loadInitialData();
   }, []);
 
-  // Remove redundant useEffects and keep only the focus effect for time updates
+  // Single useFocusEffect for all state updates
   useFocusEffect(
     useCallback(() => {
-      const updateTime = async () => {
+      const updateState = async () => {
+        // Update time
         const storedTime = await SecureStore.getItemAsync(TIME_KEY);
         if (storedTime) {
           setSelectedTime(storedTime);
         }
+        
+        // Reload tasks
+        const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+        if (storedTasks) {
+          const allTasks = JSON.parse(storedTasks);
+          const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
+          const filtered = allTasks.filter(task => task.date === tomorrow);
+          setTasks(filtered);
+        }
       };
-      updateTime();
+      updateState();
     }, [])
   );
 
@@ -162,9 +166,12 @@ export default function TomorrowScreen() {
   };
 
   const reloadData = async () => {
-    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
     if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
+      const allTasks = JSON.parse(storedTasks);
+      const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
+      const filtered = allTasks.filter(task => task.date === tomorrow);
+      setTasks(filtered);
     }
 
     const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
@@ -172,7 +179,7 @@ export default function TomorrowScreen() {
   };
 
   const clearReminders = async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    await SecureStore.deleteItemAsync(TASKS_KEY);
     setTasks([]);
     reloadData();
   };
@@ -208,14 +215,14 @@ export default function TomorrowScreen() {
           }
           const updatedTasks = tasks.filter(t => t.id !== id).concat(newTask);
           setTasks(updatedTasks);
-          await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+          await saveTasks(updatedTasks);
           return;
         }
       }
       
       const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
-      SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+      await saveTasks(updatedTasks);
     } else {
       setDoneTasks((prev) =>
         prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
@@ -223,32 +230,44 @@ export default function TomorrowScreen() {
     }
   };
 
-  // Modify handleSubmit to include notification scheduling
+  const saveTasks = async (tomorrowTasks) => {
+    try {
+      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
+      const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
+      
+      // Remove tomorrow's tasks and add updated ones
+      const otherDaysTasks = allTasks.filter(task => task.date !== tomorrow);
+      const newTasks = [...otherDaysTasks, ...tomorrowTasks];
+      
+      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(newTasks));
+    } catch (error) {
+      console.error('Error saving tasks:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (text.trim() === '') return;
-    // Get the most recent time from storage
     const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
     const repeatOption = await SecureStore.getItemAsync(REPEAT_KEY) || 'none';
     
     const newTask = {
       id: Date.now().toString(),
-      title: text,
+      title: text.trim(),
       time: currentTime,
+      date: moment().add(1, 'day').format('YYYY-MM-DD'),
       repeat: repeatOption,
     };
 
-    // Schedule notification and get notification ID
     const notificationId = await scheduleNotification(newTask);
     if (notificationId) {
       newTask.notificationId = notificationId;
     }
 
-    setTasks([...tasks, newTask]);
-    setText('');
-
-    // Save tasks with notification ID
     const updatedTasks = [...tasks, newTask];
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+    setTasks(updatedTasks);
+    setText('');
+    await saveTasks(updatedTasks);
   };
 
   // Modify handleDelete to cancel notification
@@ -268,7 +287,7 @@ export default function TomorrowScreen() {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             const updatedTasks = tasks.filter(task => task.id !== id);
             setTasks(updatedTasks);
-            await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+            await saveTasks(updatedTasks);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
           }
         }
@@ -277,13 +296,13 @@ export default function TomorrowScreen() {
   };
 
   const saveTimeForTask = async (taskId, time) => {
-    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
     if (storedTasks) {
       const tasks = JSON.parse(storedTasks);
       const updatedTasks = tasks.map(task =>
         task.id === taskId ? { ...task, time } : task
       );
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(updatedTasks));
       setTasks(updatedTasks);
     }
   };

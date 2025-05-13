@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
+const TASKS_KEY = 'tasks';
 
 export default function SettingsModal() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function SettingsModal() {
   };
 
   const clearAllReminders = async () => {
-    await SecureStore.deleteItemAsync('reminders');
+    await SecureStore.deleteItemAsync(TASKS_KEY);
     Alert.alert('Success', 'All reminders have been cleared.');
     reloadData();
   };

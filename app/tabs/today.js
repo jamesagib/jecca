@@ -17,9 +17,10 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const STORAGE_KEY = 'reminders';
+const TASKS_KEY = 'tasks'; // Use single storage key for all tasks
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
+const REPEAT_KEY = 'selected_repeat'; // Match the key used in timePicker.js
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -36,20 +37,19 @@ export default function TodayScreen() {
   useEffect(() => {
     const loadInitialData = async () => {
       // Load tasks
-      const data = await SecureStore.getItemAsync(STORAGE_KEY);
-      if (data) {
-        const all = JSON.parse(data);
+      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      if (storedTasks) {
+        const allTasks = JSON.parse(storedTasks);
         const today = moment().format('YYYY-MM-DD');
-        const filtered = all.filter(task => task.date === today);
+        const filtered = allTasks.filter(task => task.date === today);
         setTasks(filtered);
       }
 
-      // Load toggle state
+      // Load toggle and time settings
       const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
-      setRemoveAfterCompletion(storedToggle === 'true');
-
-      // Load time
       const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+      
+      setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
         setSelectedTime(storedTime);
       }
@@ -60,18 +60,28 @@ export default function TodayScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const updateTime = async () => {
+      const updateState = async () => {
+        // Update time
         const storedTime = await SecureStore.getItemAsync(TIME_KEY);
         if (storedTime) {
           setSelectedTime(storedTime);
         }
+        
+        // Reload tasks
+        const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+        if (storedTasks) {
+          const allTasks = JSON.parse(storedTasks);
+          const today = moment().format('YYYY-MM-DD');
+          const filtered = allTasks.filter(task => task.date === today);
+          setTasks(filtered);
+        }
       };
-      updateTime();
+      updateState();
     }, [])
   );
 
   const reloadData = async () => {
-    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
     if (storedTasks) {
       const today = moment().format('YYYY-MM-DD');
       const filtered = JSON.parse(storedTasks).filter(task => task.date === today);
@@ -83,7 +93,7 @@ export default function TodayScreen() {
   };
 
   const clearAllReminders = async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    await SecureStore.deleteItemAsync(TASKS_KEY);
     setTasks([]);
     reloadData();
   };
@@ -208,6 +218,22 @@ export default function TodayScreen() {
     }
   };
 
+  const saveTasks = async (todayTasks) => {
+    try {
+      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
+      const today = moment().format('YYYY-MM-DD');
+      
+      // Remove today's tasks and add updated ones
+      const otherDaysTasks = allTasks.filter(task => task.date !== today);
+      const newTasks = [...otherDaysTasks, ...todayTasks];
+      
+      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(newTasks));
+    } catch (error) {
+      console.error('Error saving tasks:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (text.trim() === '') return;
     const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
@@ -215,7 +241,7 @@ export default function TodayScreen() {
 
     const newTask = {
       id: Date.now(),
-      title: text,
+      title: text.trim(),
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
       repeat: repeatOption,
@@ -252,13 +278,13 @@ export default function TodayScreen() {
   };
 
   const saveTimeForTask = async (taskId, time) => {
-    const storedTasks = await SecureStore.getItemAsync(STORAGE_KEY);
+    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
     if (storedTasks) {
       const tasks = JSON.parse(storedTasks);
       const updatedTasks = tasks.map(task =>
         task.id === taskId ? { ...task, time } : task
       );
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(updatedTasks));
       setTasks(updatedTasks);
     }
   };
