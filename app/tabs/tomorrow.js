@@ -41,6 +41,7 @@ export default function TomorrowScreen() {
   const DATE_KEY = 'reminders_tomorrow_date';
   const TOGGLE_KEY = 'remove_reminder_toggle';
   const TIME_KEY = 'selected_time';
+  const REPEAT_KEY = 'repeat_option';
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -96,6 +97,32 @@ export default function TomorrowScreen() {
     };
     requestPermissions();
   }, []);
+
+  const getNextOccurrence = (task) => {
+    if (!task.repeat || task.repeat === 'none') return null;
+
+    const taskTime = moment(task.time, 'h:mma');
+    let nextDate = moment().add(1, 'day').hours(taskTime.hours()).minutes(taskTime.minutes());
+
+    switch (task.repeat) {
+      case 'daily':
+        nextDate = nextDate.add(1, 'day');
+        break;
+      case 'weekdays':
+        nextDate = nextDate.add(1, 'day');
+        while (nextDate.day() === 0 || nextDate.day() === 6) {
+          nextDate = nextDate.add(1, 'day');
+        }
+        break;
+      case 'weekly':
+        nextDate = nextDate.add(1, 'week');
+        break;
+      case 'monthly':
+        nextDate = nextDate.add(1, 'month');
+        break;
+    }
+    return nextDate;
+  };
 
   // Schedule notification for tomorrow's task
   const scheduleNotification = async (task) => {
@@ -159,11 +186,33 @@ export default function TomorrowScreen() {
   // Modify toggleTask to cancel notification if task is completed
   const toggleTask = async (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const task = tasks.find(t => t.id === id);
+    
     if (removeAfterCompletion) {
-      const task = tasks.find(t => t.id === id);
       if (task?.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
+      
+      // If task repeats, create next occurrence
+      if (task.repeat && task.repeat !== 'none') {
+        const nextDate = getNextOccurrence(task);
+        if (nextDate) {
+          const newTask = {
+            ...task,
+            id: Date.now().toString(),
+            date: nextDate.format('YYYY-MM-DD'),
+          };
+          const notificationId = await scheduleNotification(newTask);
+          if (notificationId) {
+            newTask.notificationId = notificationId;
+          }
+          const updatedTasks = tasks.filter(t => t.id !== id).concat(newTask);
+          setTasks(updatedTasks);
+          await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
+          return;
+        }
+      }
+      
       const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
       SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(updatedTasks));
@@ -179,10 +228,13 @@ export default function TomorrowScreen() {
     if (text.trim() === '') return;
     // Get the most recent time from storage
     const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
+    const repeatOption = await SecureStore.getItemAsync(REPEAT_KEY) || 'none';
+    
     const newTask = {
       id: Date.now().toString(),
       title: text,
-      time: currentTime
+      time: currentTime,
+      repeat: repeatOption,
     };
 
     // Schedule notification and get notification ID

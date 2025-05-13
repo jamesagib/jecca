@@ -96,6 +96,33 @@ export default function TodayScreen() {
 
   // Removed duplicate notification permission request since it's handled in onboarding
 
+  const getNextOccurrence = (task) => {
+    if (!task.repeat || task.repeat === 'none') return null;
+
+    const currentDate = moment();
+    const taskTime = moment(task.time, 'h:mma');
+    let nextDate = moment().hours(taskTime.hours()).minutes(taskTime.minutes());
+
+    switch (task.repeat) {
+      case 'daily':
+        nextDate = nextDate.add(1, 'day');
+        break;
+      case 'weekdays':
+        nextDate = nextDate.add(1, 'day');
+        while (nextDate.day() === 0 || nextDate.day() === 6) {
+          nextDate = nextDate.add(1, 'day');
+        }
+        break;
+      case 'weekly':
+        nextDate = nextDate.add(1, 'week');
+        break;
+      case 'monthly':
+        nextDate = nextDate.add(1, 'month');
+        break;
+    }
+    return nextDate;
+  };
+
   const scheduleNotification = async (task) => {
     try {
       if (task.notificationId) {
@@ -115,8 +142,12 @@ export default function TodayScreen() {
 
       // If the time has already passed today, don't schedule
       if (notificationTime.isBefore(now)) {
-        console.log('Time has already passed for today, not scheduling notification');
-        return;
+        if (task.repeat && task.repeat !== 'none') {
+          notificationTime = getNextOccurrence(task);
+        } else {
+          console.log('Time has already passed for today, not scheduling notification');
+          return;
+        }
       }
 
       // Schedule the notification with proper date
@@ -140,14 +171,36 @@ export default function TodayScreen() {
 
   const toggleTask = async (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const task = tasks.find(t => t.id === id);
+    
     if (removeAfterCompletion) {
-      const task = tasks.find(t => t.id === id);
       if (task?.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
-      const updatedTasks = tasks.filter(task => task.id !== id);
+      
+      // If task repeats, create next occurrence
+      if (task.repeat && task.repeat !== 'none') {
+        const nextDate = getNextOccurrence(task);
+        if (nextDate) {
+          const newTask = {
+            ...task,
+            id: Date.now(),
+            date: nextDate.format('YYYY-MM-DD'),
+          };
+          const notificationId = await scheduleNotification(newTask);
+          if (notificationId) {
+            newTask.notificationId = notificationId;
+          }
+          const updatedTasks = tasks.filter(t => t.id !== id).concat(newTask);
+          setTasks(updatedTasks);
+          await saveTasks(updatedTasks);
+          return;
+        }
+      }
+      
+      const updatedTasks = tasks.filter(t => t.id !== id);
       setTasks(updatedTasks);
-      saveTasks(updatedTasks);
+      await saveTasks(updatedTasks);
     } else {
       setDoneTasks((prev) =>
         prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
@@ -158,11 +211,14 @@ export default function TodayScreen() {
   const handleSubmit = async () => {
     if (text.trim() === '') return;
     const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
+    const repeatOption = await SecureStore.getItemAsync(REPEAT_KEY) || 'none';
+
     const newTask = {
       id: Date.now(),
       title: text,
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
+      repeat: repeatOption,
     };
 
     const notificationId = await scheduleNotification(newTask);
