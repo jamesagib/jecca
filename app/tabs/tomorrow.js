@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,7 @@ export default function TomorrowScreen() {
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7am');
   const tabs = ['today', 'tomorrow'];
+  const inputRef = useRef(null);
 
   const DATE_KEY = 'reminders_tomorrow_date';
 
@@ -322,6 +323,16 @@ export default function TomorrowScreen() {
     return now.isAfter(tomorrowReminderTime);
   };
 
+  const getEmptyStateMessage = () => {
+    if (tasks.length === 0) {
+      return "tomorrow's looking pretty chill! \nmaybe add something? 🌴";
+    }
+    if (tasks.every(task => doneTasks.includes(task.id))) {
+      return "planning ahead like a boss! \nall set for tomorrow! 🚀";
+    }
+    return null;
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -338,61 +349,76 @@ export default function TomorrowScreen() {
         </View>
 
         <View style={styles.listContainer}>
-          {tasks.map((item) => (
-            <TouchableOpacity
-              style={styles.reminderContainer}
-              key={item.id}
-              onPress={() => toggleTask(item.id)}
-              onLongPress={() => handleDelete(item.id)}
-            >
-              <Text
-                style={[
-                  styles.reminderName,
-                  { 
-                    color: wouldBeOverdue(item.time) ? "#FF0000" : 
-                           doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                  }
-                ]}
-              >
-                {item.title}
-              </Text>
-              <View
-                style={[
-                  styles.timeContainer,
-                  { 
-                    borderColor: wouldBeOverdue(item.time) ? "#FF0000" : 
-                                doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                  }
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.timeText,
-                    { 
-                      color: wouldBeOverdue(item.time) ? "#FF0000" : 
-                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                    }
-                  ]}
+          <View style={styles.taskListContainer}>
+            {getEmptyStateMessage() ? (
+              <View style={styles.emptyStateContainer}>
+                <Text style={styles.emptyStateText}>{getEmptyStateMessage()}</Text>
+                <TouchableOpacity 
+                  style={styles.addTaskButton}
+                  onPress={() => inputRef.current?.focus()}
                 >
-                  {item.time}
-                </Text>
-                {item.repeat && item.repeat !== 'none' && (
-                  <View 
-                    style={[
-                      styles.repeatDot,
-                      {
-                        backgroundColor: wouldBeOverdue(item.time) ? "#FF0000" : 
-                                       doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
-                      }
-                    ]} 
-                  />
-                )}
+                  <Text style={styles.addTaskButtonText}>add something to do...</Text>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-          ))}
+            ) : (
+              tasks.map((item) => (
+                <TouchableOpacity
+                  style={styles.reminderContainer}
+                  key={item.id}
+                  onPress={() => toggleTask(item.id)}
+                  onLongPress={() => handleDelete(item.id)}
+                >
+                  <Text
+                    style={[
+                      styles.reminderName,
+                      { 
+                        color: wouldBeOverdue(item.time) ? "#FF0000" : 
+                               doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                      }
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  <View
+                    style={[
+                      styles.timeContainer,
+                      { 
+                        borderColor: wouldBeOverdue(item.time) ? "#FF0000" : 
+                                    doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.timeText,
+                        { 
+                          color: wouldBeOverdue(item.time) ? "#FF0000" : 
+                                 doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                        }
+                      ]}
+                    >
+                      {item.time}
+                    </Text>
+                    {item.repeat && item.repeat !== 'none' && (
+                      <View 
+                        style={[
+                          styles.repeatDot,
+                          {
+                            backgroundColor: wouldBeOverdue(item.time) ? "#FF0000" : 
+                                           doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
+                          }
+                        ]} 
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
 
           <View style={styles.newItemContainer}>
             <TextInput
+              ref={inputRef}
               placeholderTextColor={"#CFCFCF"}
               placeholder='+ add item...'
               style={styles.addItemInput}
@@ -530,6 +556,36 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
   selectedText: {
+    color: '#212121',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  emptyStateText: {
+    fontSize: 20,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#CFCFCF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  taskListContainer: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
+  addTaskButton: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 40,
+  },
+  addTaskButtonText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
   },
 });
