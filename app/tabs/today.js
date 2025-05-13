@@ -31,6 +31,7 @@ export default function TodayScreen() {
   const [tasks, setTasks] = useState([]);
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7am');
+  const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
 
   const tabs = ['today', 'tomorrow'];
@@ -256,6 +257,7 @@ export default function TodayScreen() {
     const updated = [...tasks, newTask];
     setTasks(updated);
     setText('');
+    setIsInputVisible(false);
     await saveTasks(updated);
   };
 
@@ -328,87 +330,103 @@ export default function TodayScreen() {
         </View>
 
         <View style={styles.listContainer}>
-          <View style={styles.taskListContainer}>
-            {getEmptyStateMessage() ? (
-              <View style={styles.emptyStateContainer}>
-                <Text style={styles.emptyStateText}>{getEmptyStateMessage()}</Text>
-                <TouchableOpacity 
-                  style={styles.addTaskButton}
-                  onPress={() => inputRef.current?.focus()}
-                >
-                  <Text style={styles.addTaskButtonText}>add something to do...</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              tasks.map((item) => (
-                <TouchableOpacity
-                  style={styles.reminderContainer}
-                  key={item.id}
-                  onPress={() => toggleTask(item.id)}
-                  onLongPress={() => handleDelete(item.id)}
-                >
-                  <Text
-                    style={[
-                      styles.reminderName,
-                      { 
-                        color: isOverdue(item.time) ? "#FF0000" : 
-                               doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                      }
-                    ]}
+          <View style={styles.mainContent}>
+            <View style={styles.centerContainer}>
+              {getEmptyStateMessage() && !isInputVisible && (
+                <View style={styles.emptyStateContainer}>
+                  <Text style={styles.emptyStateText}>{getEmptyStateMessage()}</Text>
+                  <TouchableOpacity 
+                    style={styles.addTaskButton}
+                    onPress={() => {
+                      setIsInputVisible(true);
+                      setTimeout(() => inputRef.current?.focus(), 100);
+                    }}
                   >
-                    {item.title}
-                  </Text>
-                  <View
-                    style={[
-                      styles.timeContainer,
-                      { 
-                        borderColor: isOverdue(item.time) ? "#FF0000" : 
-                                    doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                      }
-                    ]}
+                    <Text style={styles.addTaskButtonText}>add something to do...</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              <View style={styles.taskListContainer}>
+                {tasks.map((item) => (
+                  <TouchableOpacity
+                    style={styles.reminderContainer}
+                    key={item.id}
+                    onPress={() => toggleTask(item.id)}
+                    onLongPress={() => handleDelete(item.id)}
                   >
                     <Text
                       style={[
-                        styles.timeText,
+                        styles.reminderName,
                         { 
                           color: isOverdue(item.time) ? "#FF0000" : 
                                  doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
                         }
                       ]}
                     >
-                      {item.time}
+                      {item.title}
                     </Text>
-                    {item.repeat && item.repeat !== 'none' && (
-                      <View 
+                    <View
+                      style={[
+                        styles.timeContainer,
+                        { 
+                          borderColor: isOverdue(item.time) ? "#FF0000" : 
+                                      doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                        }
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.repeatDot,
-                          {
-                            backgroundColor: isOverdue(item.time) ? "#FF0000" : 
-                                           doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
+                          styles.timeText,
+                          { 
+                            color: isOverdue(item.time) ? "#FF0000" : 
+                                   doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
                           }
-                        ]} 
-                      />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
+                        ]}
+                      >
+                        {item.time}
+                      </Text>
+                      {item.repeat && item.repeat !== 'none' && (
+                        <View 
+                          style={[
+                            styles.repeatDot,
+                            {
+                              backgroundColor: isOverdue(item.time) ? "#FF0000" : 
+                                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
+                            }
+                          ]} 
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-          <View style={styles.newItemContainer}>
-            <TextInput
-              ref={inputRef}
-              placeholderTextColor={"#CFCFCF"}
-              placeholder='+ add item...'
-              style={styles.addItemInput}
-              onChangeText={setText}
-              onSubmitEditing={handleSubmit}
-              value={text}
-              autoCapitalize='none'
-            />
-            <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
-              <Text style={styles.timeText}>{selectedTime}</Text>
-            </TouchableOpacity>
+              {(isInputVisible || tasks.length > 0) && (
+                <View style={styles.inputSection}>
+                  <View style={styles.newItemContainer}>
+                    <TextInput
+                      ref={inputRef}
+                      placeholderTextColor={"#CFCFCF"}
+                      placeholder='+ add item...'
+                      style={styles.addItemInput}
+                      onChangeText={setText}
+                      onSubmitEditing={handleSubmit}
+                      value={text}
+                      autoCapitalize='none'
+                      onBlur={() => {
+                        if (text.trim() === '') {
+                          setIsInputVisible(false);
+                        }
+                      }}
+                    />
+                    <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
+                      <Text style={styles.timeText}>{selectedTime}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -535,22 +553,31 @@ const styles = StyleSheet.create({
     color: '#212121',
   },
   emptyStateContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-  emptyStateText: {
-    fontSize: 20,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#CFCFCF',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  taskListContainer: {
+  mainContent: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerContainer: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskListContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  inputSection: {
+    width: '100%',
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addTaskButton: {
     backgroundColor: '#f5f5f5',
@@ -563,5 +590,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
+  },
+  emptyStateText: {
+    fontSize: 21,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#212121',
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });
