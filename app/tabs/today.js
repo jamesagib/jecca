@@ -355,6 +355,17 @@ export default function TodayScreen() {
                 >
                   {item.time}
                 </Text>
+                {item.repeat && item.repeat !== 'none' && (
+                  <View 
+                    style={[
+                      styles.repeatDot,
+                      {
+                        backgroundColor: isOverdue(item.time) ? "#FF0000" : 
+                                       doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
+                      }
+                    ]} 
+                  />
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -438,6 +449,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  repeatDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CFCFCF',
   },
   timeText: {
     fontSize: 14,

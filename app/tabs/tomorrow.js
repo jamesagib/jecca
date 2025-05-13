@@ -376,6 +376,17 @@ export default function TomorrowScreen() {
                 >
                   {item.time}
                 </Text>
+                {item.repeat && item.repeat !== 'none' && (
+                  <View 
+                    style={[
+                      styles.repeatDot,
+                      {
+                        backgroundColor: wouldBeOverdue(item.time) ? "#FF0000" : 
+                                       doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
+                      }
+                    ]} 
+                  />
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -455,13 +466,23 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   timeContainer: {
-    marginLeft: 5, // Add small spacing between reminderName and timeContainer
+    marginLeft: 5,
     minWidth: 65,
     height: 25,
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
     paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  repeatDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CFCFCF',
   },
   timeText: {
     fontSize: 14,
