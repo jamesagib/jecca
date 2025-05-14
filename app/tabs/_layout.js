@@ -6,7 +6,7 @@ export default memo(function TabsLayout() {
   return (
     <View style={{ 
       flex: 1, 
-      maxWidth: Platform.OS === 'web' ? 800 : '100%',
+      maxWidth: Platform.OS === 'web' ? '100%' : '100%',
       width: '100%',
       alignSelf: 'center',
       backgroundColor: '#fff'
