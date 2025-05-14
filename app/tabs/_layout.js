@@ -8,12 +8,15 @@ export default memo(function TabsLayout() {
       flex: 1, 
       maxWidth: Platform.OS === 'web' ? 800 : '100%',
       width: '100%',
-      alignSelf: 'center'
+      alignSelf: 'center',
+      backgroundColor: '#fff'
     }}>
       <Tabs 
         screenOptions={{
           headerShown: false,
-          tabBarStyle: { display: 'none' },
+          tabBarStyle: { 
+            display: 'none'
+          },
           animation: 'none'
         }}
       >

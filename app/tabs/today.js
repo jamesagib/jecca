@@ -449,11 +449,9 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: Platform.OS === 'web' ? 600 : '100%',
-    alignSelf: 'center',
+    justifyContent: 'space-between',
     width: '100%',
   },
   header: {
@@ -470,18 +468,16 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    width: Platform.select({ web: '60%', default: '90%' }),
-    maxWidth: Platform.select({ web: 800, default: undefined }),
-    gap: 5
+    paddingHorizontal: 20,
   },
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    width: Platform.OS === 'web' ? '80%' : '90%',
-    marginBottom: Platform.OS === 'web' ? 10 : 0,
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
   },
   reminderName: {
     flex: 0,
@@ -521,10 +517,12 @@ const styles = StyleSheet.create({
   newItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    width: '80%'
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
   },
   addItemInput: {
+    flex: 1,
     fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
   },
@@ -542,18 +540,13 @@ const styles = StyleSheet.create({
   bottomBar: {
     position: 'absolute',
     bottom: Platform.select({ web: 50, default: 30 }),
-    left: Platform.select({ web: '20%', default: 50 }),
-    right: Platform.select({ web: '20%', default: 50 }),
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'white',
-    width: Platform.OS === 'web' ? 200 : undefined,
-    borderRadius: Platform.OS === 'web' ? 20 : 0,
-    shadowColor: Platform.OS === 'web' ? '#000' : undefined,
-    shadowOffset: Platform.OS === 'web' ? { width: 0, height: 2 } : undefined,
-    shadowOpacity: Platform.OS === 'web' ? 0.1 : undefined,
-    shadowRadius: Platform.OS === 'web' ? 4 : undefined,
+    width: '100%',
+    paddingVertical: 10,
+    gap: 40,
   },
   tabText: {
     fontSize: Platform.select({ web: 32, default: 25 }),
@@ -572,13 +565,11 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   taskListContainer: {
     width: '100%',
@@ -588,7 +579,6 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   addTaskButton: {
     backgroundColor: '#f5f5f5',
