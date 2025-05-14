@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { View, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
-import * as SecureStore from 'expo-secure-store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { storage } from './utils/storage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,7 +19,7 @@ export default function RootLayout() {
     async function prepare() {
       if (!fontsLoaded) return;
       try {
-        const status = await SecureStore.getItemAsync('onboardingComplete');
+        const status = await storage.getItem('onboardingComplete');
         setIsOnboardingComplete(status === 'true');
       } catch (e) {
         setIsOnboardingComplete(false);

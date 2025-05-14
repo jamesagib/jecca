@@ -12,11 +12,11 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { storage } from '../utils/storage';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -49,7 +49,7 @@ export default function TomorrowScreen() {
   useEffect(() => {
     const loadInitialData = async () => {
       // Load tasks
-      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      const storedTasks = await storage.getItem(TASKS_KEY);
       if (storedTasks) {
         const allTasks = JSON.parse(storedTasks);
         const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
@@ -58,8 +58,8 @@ export default function TomorrowScreen() {
       }
 
       // Load toggle and time settings
-      const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
-      const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+      const storedToggle = await storage.getItem(TOGGLE_KEY);
+      const storedTime = await storage.getItem(TIME_KEY);
       
       setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
@@ -75,13 +75,13 @@ export default function TomorrowScreen() {
     useCallback(() => {
       const updateState = async () => {
         // Update time
-        const storedTime = await SecureStore.getItemAsync(TIME_KEY);
+        const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
           setSelectedTime(storedTime);
         }
         
         // Reload tasks
-        const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+        const storedTasks = await storage.getItem(TASKS_KEY);
         if (storedTasks) {
           const allTasks = JSON.parse(storedTasks);
           const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
@@ -168,7 +168,7 @@ export default function TomorrowScreen() {
   };
 
   const reloadData = async () => {
-    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+    const storedTasks = await storage.getItem(TASKS_KEY);
     if (storedTasks) {
       const allTasks = JSON.parse(storedTasks);
       const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
@@ -176,12 +176,12 @@ export default function TomorrowScreen() {
       setTasks(filtered);
     }
 
-    const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+    const storedToggle = await storage.getItem(TOGGLE_KEY);
     setRemoveAfterCompletion(storedToggle === 'true');
   };
 
   const clearReminders = async () => {
-    await SecureStore.deleteItemAsync(TASKS_KEY);
+    await storage.deleteItem(TASKS_KEY);
     setTasks([]);
     reloadData();
   };
@@ -189,7 +189,7 @@ export default function TomorrowScreen() {
   const toggleSwitch = async () => {
     const newState = !removeAfterCompletion;
     setRemoveAfterCompletion(newState);
-    await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
+    await storage.setItem(TOGGLE_KEY, newState.toString());
   };
 
   // Modify toggleTask to cancel notification if task is completed
@@ -234,7 +234,7 @@ export default function TomorrowScreen() {
 
   const saveTasks = async (tomorrowTasks) => {
     try {
-      const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+      const storedTasks = await storage.getItem(TASKS_KEY);
       const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
       const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
       
@@ -242,7 +242,7 @@ export default function TomorrowScreen() {
       const otherDaysTasks = allTasks.filter(task => task.date !== tomorrow);
       const newTasks = [...otherDaysTasks, ...tomorrowTasks];
       
-      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(newTasks));
+      await storage.setItem(TASKS_KEY, JSON.stringify(newTasks));
     } catch (error) {
       console.error('Error saving tasks:', error);
     }
@@ -250,8 +250,8 @@ export default function TomorrowScreen() {
 
   const handleSubmit = async () => {
     if (text.trim() === '') return;
-    const currentTime = await SecureStore.getItemAsync(TIME_KEY) || selectedTime;
-    const repeatOption = await SecureStore.getItemAsync(REPEAT_KEY) || 'none';
+    const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
+    const repeatOption = await storage.getItem(REPEAT_KEY) || 'none';
     
     const newTask = {
       id: Date.now().toString(),
@@ -299,13 +299,13 @@ export default function TomorrowScreen() {
   };
 
   const saveTimeForTask = async (taskId, time) => {
-    const storedTasks = await SecureStore.getItemAsync(TASKS_KEY);
+    const storedTasks = await storage.getItem(TASKS_KEY);
     if (storedTasks) {
       const tasks = JSON.parse(storedTasks);
       const updatedTasks = tasks.map(task =>
         task.id === taskId ? { ...task, time } : task
       );
-      await SecureStore.setItemAsync(TASKS_KEY, JSON.stringify(updatedTasks));
+      await storage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
       setTasks(updatedTasks);
     }
   };
@@ -471,20 +471,24 @@ export default function TomorrowScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: 'white',
     alignItems: 'center',
-    justifyContent: 'center' 
+    justifyContent: 'center',
+    maxWidth: Platform.OS === 'web' ? 600 : '100%',
+    alignSelf: 'center',
+    width: '100%',
   },
   header: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    height: 100,
+    marginTop: Platform.OS === 'web' ? 30 : 10,
+    height: Platform.OS === 'web' ? 80 : 100,
+    width: '100%',
   },
   dateText: {
-    fontSize: 28,
+    fontSize: Platform.select({ web: 36, default: 28 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
   },
@@ -492,18 +496,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '90%',
+    width: Platform.select({ web: '60%', default: '90%' }),
+    maxWidth: Platform.select({ web: 800, default: undefined }),
     gap: 5
   },
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '90%',
+    width: Platform.OS === 'web' ? '80%' : '90%',
+    marginBottom: Platform.OS === 'web' ? 10 : 0,
   },
   reminderName: {
     flex: 0,
-    fontSize: 25,
+    fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#4A4A4A',
@@ -511,8 +517,8 @@ const styles = StyleSheet.create({
   },
   timeContainer: {
     marginLeft: 5,
-    minWidth: 65,
-    height: 25,
+    minWidth: Platform.select({ web: 80, default: 65 }),
+    height: Platform.select({ web: 32, default: 25 }),
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
@@ -529,11 +535,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#CFCFCF',
   },
   timeText: {
-    fontSize: 14,
+    fontSize: Platform.select({ web: 16, default: 14 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#CFCFCF',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: Platform.select({ web: 24, default: 22 }),
     padding: 1,
   },
   newItemContainer: {
@@ -543,33 +549,38 @@ const styles = StyleSheet.create({
     width: '80%'
   },
   addItemInput: {
-    fontSize: 25,
+    fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
   },
   inputTimeContainer: {
-    marginLeft: 5, // Add small spacing between reminderName and timeContainer
-    minWidth: 65,
-    height: 25,
+    marginLeft: 10,
+    minWidth: Platform.select({ web: 80, default: 65 }),
+    height: Platform.select({ web: 32, default: 25 }),
     borderRadius: 12,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginLeft: 10,
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
   bottomBar: {
     position: 'absolute',
-    bottom: 30,
-    left: 50,
-    right: 50,
+    bottom: Platform.select({ web: 50, default: 30 }),
+    left: Platform.select({ web: '20%', default: 50 }),
+    right: Platform.select({ web: '20%', default: 50 }),
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 10,
     backgroundColor: 'white',
+    width: Platform.OS === 'web' ? 200 : undefined,
+    borderRadius: Platform.OS === 'web' ? 20 : 0,
+    shadowColor: Platform.OS === 'web' ? '#000' : undefined,
+    shadowOffset: Platform.OS === 'web' ? { width: 0, height: 2 } : undefined,
+    shadowOpacity: Platform.OS === 'web' ? 0.1 : undefined,
+    shadowRadius: Platform.OS === 'web' ? 4 : undefined,
   },
   tabText: {
-    fontSize: 25,
+    fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#ccc',
   },
@@ -581,9 +592,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  mainContent: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerContainer: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   taskListContainer: {
     width: '100%',
     alignItems: 'center',
+  },
+  inputSection: {
+    width: '100%',
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addTaskButton: {
     backgroundColor: '#f5f5f5',
@@ -597,26 +626,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
   },
-  mainContent: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inputSection: {
-    width: '100%',
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyStateText: {
-    fontSize: 21,
+    fontSize: Platform.select({ web: 28, default: 21 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
     textAlign: 'center',

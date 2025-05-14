@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from './utils/storage';
 import moment from 'moment';
 
 const TIME_KEY = 'selected_time';
@@ -28,8 +28,8 @@ export default function TimePicker() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const storedTime = await SecureStore.getItemAsync(TIME_KEY);
-        const storedRepeat = await SecureStore.getItemAsync(REPEAT_KEY);
+        const storedTime = await storage.getItem(TIME_KEY);
+        const storedRepeat = await storage.getItem(REPEAT_KEY);
         
         if (storedTime) {
           setTime(moment(storedTime, 'h:mma').toDate());
@@ -76,8 +76,8 @@ export default function TimePicker() {
   const handleSave = async (selectedTime = time) => {
     try {
       const formattedTime = moment(selectedTime).format('h:mma');
-      await SecureStore.setItemAsync(TIME_KEY, formattedTime);
-      await SecureStore.setItemAsync(REPEAT_KEY, repeatOption);
+      await storage.setItem(TIME_KEY, formattedTime);
+      await storage.setItem(REPEAT_KEY, repeatOption);
       router.back();
     } catch (error) {
       console.error('Error saving:', error);

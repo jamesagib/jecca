@@ -3,7 +3,7 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from './utils/storage';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -22,7 +22,7 @@ export default function SettingsModal() {
 
   useEffect(() => {
     const loadToggleState = async () => {
-      const storedToggle = await SecureStore.getItemAsync(TOGGLE_KEY);
+      const storedToggle = await storage.getItem(TOGGLE_KEY);
       if (storedToggle !== null) {
         setIsEnabled(storedToggle === 'true');
       }
@@ -45,7 +45,7 @@ export default function SettingsModal() {
   const toggleSwitch = async () => {
     try {
       const newState = !isEnabled;
-      await SecureStore.setItemAsync(TOGGLE_KEY, newState.toString());
+      await storage.setItem(TOGGLE_KEY, newState.toString());
       setIsEnabled(newState);
     } catch (error) {
       console.error('Error toggling switch:', error);
@@ -55,7 +55,7 @@ export default function SettingsModal() {
 
   const clearAllReminders = async () => {
     try {
-      await SecureStore.deleteItemAsync(TASKS_KEY);
+      await storage.removeItem(TASKS_KEY);
       Alert.alert('Success', 'All reminders have been cleared.');
       router.push('/tabs/today');
     } catch (error) {

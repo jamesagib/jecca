@@ -1,23 +1,28 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { storage } from './utils/storage';
 
-export default function Onboarding3() {
-  const requestNotificationsAndComplete = async () => {
+export default function OnboardingScreen() {
+  const router = useRouter();
+
+  const completeOnboarding = async () => {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        // Even if they don't grant permission, we'll still let them use the app
-        console.log('Notification permissions not granted');
+      if (status === 'granted') {
+        await storage.setItem('onboardingComplete', 'true');
+        router.replace('/tabs/today');
+      } else {
+        await storage.setItem('onboardingComplete', 'true');
+        Alert.alert(
+          'Notifications Disabled',
+          'You can enable notifications in your device settings to receive reminders.',
+          [{ text: 'OK', onPress: () => router.replace('/tabs/today') }]
+        );
       }
-      await SecureStore.setItemAsync('onboardingComplete', 'true');
-      router.push('/tabs/today');
     } catch (error) {
-      console.error('Error requesting notifications:', error);
-      // Continue with onboarding even if there's an error
-      await SecureStore.setItemAsync('onboardingComplete', 'true');
-      router.push('/tabs/today');
+      console.error('Error completing onboarding:', error);
+      router.replace('/tabs/today');
     }
   };
 
@@ -28,12 +33,12 @@ export default function Onboarding3() {
         <Text style={styles.subtitle}>last thing. if you want us to notify you when you need to complete a reminder, click "Allow notifications" below.</Text>
       </View>
       <View style={styles.buttonContainer}>
-        <Pressable 
+        <TouchableOpacity 
           style={styles.button}
-          onPress={requestNotificationsAndComplete}
+          onPress={completeOnboarding}
         >
           <Text style={styles.buttonText}>let's go</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </View>
   );

@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { Redirect } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { storage } from './utils/storage';
 
-export default function Index() {
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(null);
+export default function StartScreen() {
+  const router = useRouter();
 
   useEffect(() => {
-    SecureStore.getItemAsync('onboardingComplete')
-      .then(status => setIsOnboardingComplete(status === 'true'));
+    Promise.resolve(
+      storage.getItem('onboardingComplete')
+    ).then((value) => {
+      if (value === 'true') {
+        router.replace('/tabs/today');
+      } else {
+        router.replace('/onboarding1');
+      }
+    });
   }, []);
 
-  if (isOnboardingComplete === null) {
-    return <View />; // Loading state
-  }
-
-  return <Redirect href={isOnboardingComplete ? "/tabs/today" : "/onboarding1"} />;
+  return null;
 }
