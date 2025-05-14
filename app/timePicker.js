@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -67,10 +67,17 @@ export default function TimePicker() {
   const handleTimeChange = (event, selectedDate) => {
     if (selectedDate) {
       setTime(selectedDate);
+      // Only auto-save on Android
       if (Platform.OS === 'android') {
         handleSave(selectedDate);
       }
     }
+  };
+
+  const handlePresetTime = (presetTime) => {
+    const parsedTime = moment(presetTime, 'h:mma').toDate();
+    setTime(parsedTime);
+    handleSave(parsedTime);
   };
 
   const handleSave = async (selectedTime = time) => {
@@ -78,7 +85,14 @@ export default function TimePicker() {
       const formattedTime = moment(selectedTime).format('h:mma');
       await storage.setItem(TIME_KEY, formattedTime);
       await storage.setItem(REPEAT_KEY, repeatOption);
-      router.back();
+      
+      // Close the bottom sheet first
+      bottomSheetRef.current?.close();
+      
+      // Add a small delay before navigation to ensure smooth animation
+      setTimeout(() => {
+        router.replace('/tabs/tomorrow');
+      }, 300);
     } catch (error) {
       console.error('Error saving:', error);
     }
@@ -103,12 +117,36 @@ export default function TimePicker() {
     '10:00pm'
   ];
 
-  const handlePresetTime = (presetTime) => {
-    const parsedTime = moment(presetTime, 'h:mma').toDate();
-    setTime(parsedTime);
-    if (Platform.OS === 'android') {
-      handleSave(parsedTime);
-    }
+  const WebTimePicker = () => {
+    const handleWebTimeChange = (event) => {
+      const timeString = event.target.value;
+      if (timeString) {
+        const [hours, minutes] = timeString.split(':');
+        const date = new Date();
+        date.setHours(parseInt(hours));
+        date.setMinutes(parseInt(minutes));
+        setTime(date);
+        handleSave(date); // Auto-save when time is changed on web
+      }
+    };
+
+    return (
+      <input
+        type="time"
+        onChange={handleWebTimeChange}
+        value={moment(time).format('HH:mm')}
+        style={{
+          fontSize: '16px',
+          padding: '8px',
+          borderRadius: '8px',
+          border: '1px solid #CFCFCF',
+          backgroundColor: '#f5f5f5',
+          fontFamily: 'Nunito_800ExtraBold',
+          width: '120px',
+          marginBottom: '20px'
+        }}
+      />
+    );
   };
 
   return (
@@ -137,10 +175,18 @@ export default function TimePicker() {
               {presetTimes.map((time) => (
                 <TouchableOpacity
                   key={time}
-                  style={styles.presetButton}
+                  style={[
+                    styles.presetButton,
+                    moment(time, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonSelected
+                  ]}
                   onPress={() => handlePresetTime(time)}
                 >
-                  <Text style={styles.presetButtonText}>{time}</Text>
+                  <Text style={[
+                    styles.presetButtonText,
+                    moment(time, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonTextSelected
+                  ]}>
+                    {time}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -170,24 +216,26 @@ export default function TimePicker() {
           </View>
 
           <View style={styles.timePickerWrapper}>
-            <DateTimePicker
-              testID="timePicker"
-              value={time}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleTimeChange}
-              style={styles.timePicker}
-            />
+            {Platform.OS === 'web' ? (
+              <WebTimePicker />
+            ) : (
+              <DateTimePicker
+                testID="timePicker"
+                value={time}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleTimeChange}
+                style={styles.timePicker}
+              />
+            )}
           </View>
 
-          {Platform.OS === 'ios' && (
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => handleSave()}
-            >
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleSave}
+          >
+            <Text style={styles.confirmButtonText}>Set Time</Text>
+          </TouchableOpacity>
         </BottomSheetView>
       </BottomSheet>
     </GestureHandlerRootView>
@@ -250,6 +298,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
   },
+  presetButtonSelected: {
+    backgroundColor: '#212121',
+  },
+  presetButtonTextSelected: {
+    color: 'white',
+  },
   timePickerWrapper: {
     flex: 1,
     justifyContent: 'center',
@@ -266,7 +320,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     width: '90%',
-    marginBottom: 20
+    marginBottom: 20,
+    marginTop: 20,
   },
   confirmButtonText: {
     color: 'white',
