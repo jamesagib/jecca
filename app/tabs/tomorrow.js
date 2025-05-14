@@ -473,9 +473,10 @@ export default function TomorrowScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
+    display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: Platform.OS === 'web' ? 'space-between' : 'center',
     width: '100%',
   },
   header: {

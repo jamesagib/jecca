@@ -449,9 +449,10 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
+    display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: Platform.OS === 'web' ? 'space-between' : 'center',
     width: '100%',
   },
   header: {
@@ -475,17 +476,19 @@ const styles = StyleSheet.create({
   reminderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     width: '100%',
     marginBottom: 10,
+    paddingHorizontal: 20,
   },
   reminderName: {
-    flex: 0,
+    flex: 1,
     fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
+    textAlign: 'left',
     color: '#4A4A4A',
     flexShrink: 1,
+    marginRight: 10,
   },
   timeContainer: {
     marginLeft: 5,
@@ -574,6 +577,9 @@ const styles = StyleSheet.create({
   taskListContainer: {
     width: '100%',
     alignItems: 'center',
+    paddingHorizontal: Platform.select({ web: 0, default: 10 }),
+    maxWidth: Platform.select({ web: '100%', default: 500 }),
+    alignSelf: 'center',
   },
   inputSection: {
     width: '100%',
