@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -8,34 +8,19 @@ import { storage } from './utils/storage';
 import moment from 'moment';
 
 const TIME_KEY = 'selected_time';
-const REPEAT_KEY = 'selected_repeat';
 
 export default function TimePicker() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['70%'], []); // Increased height for repeat options
+  const snapPoints = useMemo(() => ['50%'], []); 
   const [time, setTime] = useState(new Date());
-  const [repeatOption, setRepeatOption] = useState('none');
-
-  const repeatOptions = [
-    { id: 'none', label: 'Once' },
-    { id: 'daily', label: 'Every Day' },
-    { id: 'weekdays', label: 'Weekdays' },
-    { id: 'weekly', label: 'Weekly' },
-    { id: 'monthly', label: 'Monthly' }
-  ];
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         const storedTime = await storage.getItem(TIME_KEY);
-        const storedRepeat = await storage.getItem(REPEAT_KEY);
-        
         if (storedTime) {
           setTime(moment(storedTime, 'h:mma').toDate());
-        }
-        if (storedRepeat) {
-          setRepeatOption(storedRepeat);
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -67,7 +52,6 @@ export default function TimePicker() {
   const handleTimeChange = (event, selectedDate) => {
     if (selectedDate) {
       setTime(selectedDate);
-      // Only auto-save on Android
       if (Platform.OS === 'android') {
         handleSave(selectedDate);
       }
@@ -84,14 +68,10 @@ export default function TimePicker() {
     try {
       const formattedTime = moment(selectedTime).format('h:mma');
       await storage.setItem(TIME_KEY, formattedTime);
-      await storage.setItem(REPEAT_KEY, repeatOption);
       
-      // Close the bottom sheet first
       bottomSheetRef.current?.close();
-      
-      // Add a small delay before navigation to ensure smooth animation
       setTimeout(() => {
-        router.replace('/tabs/tomorrow');
+        router.back();
       }, 300);
     } catch (error) {
       console.error('Error saving:', error);
@@ -99,22 +79,10 @@ export default function TimePicker() {
   };
 
   const presetTimes = [
-    '7:00am',
-    '8:00am',
-    '9:00am',
-    '10:00am',
-    '11:00am',
-    '12:00pm',
-    '1:00pm',
-    '2:00pm',
-    '3:00pm',
-    '4:00pm',
-    '5:00pm',
-    '6:00pm',
-    '7:00pm',
-    '8:00pm',
-    '9:00pm',
-    '10:00pm'
+    '7:00am', '8:00am', '9:00am', '10:00am',
+    '11:00am', '12:00pm', '1:00pm', '2:00pm',
+    '3:00pm', '4:00pm', '5:00pm', '6:00pm',
+    '7:00pm', '8:00pm', '9:00pm', '10:00pm'
   ];
 
   const WebTimePicker = () => {
@@ -126,7 +94,7 @@ export default function TimePicker() {
         date.setHours(parseInt(hours));
         date.setMinutes(parseInt(minutes));
         setTime(date);
-        handleSave(date); // Auto-save when time is changed on web
+        handleSave(date);
       }
     };
 
@@ -161,8 +129,6 @@ export default function TimePicker() {
         handleIndicatorStyle={styles.handleIndicator}
         backgroundStyle={styles.sheetBackground}
         handleStyle={styles.handleStyle}
-        enableContentPanningGesture={true}
-        enableHandlePanningGesture={true}
       >
         <BottomSheetView style={styles.contentContainer}>
           <View style={styles.presetWrapper}>
@@ -190,29 +156,6 @@ export default function TimePicker() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-
-          <View style={styles.repeatOptionsContainer}>
-            <Text style={styles.sectionTitle}>Repeat</Text>
-            <View style={styles.repeatButtonsContainer}>
-              {repeatOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.repeatButton,
-                    repeatOption === option.id && styles.repeatButtonSelected
-                  ]}
-                  onPress={() => setRepeatOption(option.id)}
-                >
-                  <Text style={[
-                    styles.repeatButtonText,
-                    repeatOption === option.id && styles.repeatButtonTextSelected
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
 
           <View style={styles.timePickerWrapper}>
@@ -308,6 +251,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
   },
   timePicker: {
     width: Platform.OS === 'ios' ? '100%' : 'auto',
@@ -328,40 +272,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
-  },
-  repeatOptionsContainer: {
-    width: '100%',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    marginBottom: 8,
-  },
-  repeatButtonsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'flex-start',
-  },
-  repeatButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginBottom: 8,
-  },
-  repeatButtonSelected: {
-    backgroundColor: '#212121',
-  },
-  repeatButtonText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-  },
-  repeatButtonTextSelected: {
-    color: 'white',
   },
 });

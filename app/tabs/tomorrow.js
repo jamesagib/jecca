@@ -30,7 +30,6 @@ Notifications.setNotificationHandler({
 const TASKS_KEY = 'tasks';
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
-const REPEAT_KEY = 'selected_repeat';
 
 export default function TomorrowScreen() {
   const router = useRouter();
@@ -104,32 +103,6 @@ export default function TomorrowScreen() {
     requestPermissions();
   }, []);
 
-  const getNextOccurrence = (task) => {
-    if (!task.repeat || task.repeat === 'none') return null;
-
-    const taskTime = moment(task.time, 'h:mma');
-    let nextDate = moment().add(1, 'day').hours(taskTime.hours()).minutes(taskTime.minutes());
-
-    switch (task.repeat) {
-      case 'daily':
-        nextDate = nextDate.add(1, 'day');
-        break;
-      case 'weekdays':
-        nextDate = nextDate.add(1, 'day');
-        while (nextDate.day() === 0 || nextDate.day() === 6) {
-          nextDate = nextDate.add(1, 'day');
-        }
-        break;
-      case 'weekly':
-        nextDate = nextDate.add(1, 'week');
-        break;
-      case 'monthly':
-        nextDate = nextDate.add(1, 'month');
-        break;
-    }
-    return nextDate;
-  };
-
   // Schedule notification for tomorrow's task
   const scheduleNotification = async (task) => {
     try {
@@ -201,27 +174,6 @@ export default function TomorrowScreen() {
       if (task?.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
-      
-      // If task repeats, create next occurrence
-      if (task.repeat && task.repeat !== 'none') {
-        const nextDate = getNextOccurrence(task);
-        if (nextDate) {
-          const newTask = {
-            ...task,
-            id: Date.now().toString(),
-            date: nextDate.format('YYYY-MM-DD'),
-          };
-          const notificationId = await scheduleNotification(newTask);
-          if (notificationId) {
-            newTask.notificationId = notificationId;
-          }
-          const updatedTasks = tasks.filter(t => t.id !== id).concat(newTask);
-          setTasks(updatedTasks);
-          await saveTasks(updatedTasks);
-          return;
-        }
-      }
-      
       const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
       await saveTasks(updatedTasks);
@@ -251,14 +203,12 @@ export default function TomorrowScreen() {
   const handleSubmit = async () => {
     if (text.trim() === '') return;
     const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
-    const repeatOption = await storage.getItem(REPEAT_KEY) || 'none';
     
     const newTask = {
       id: Date.now().toString(),
       title: text.trim(),
       time: currentTime,
       date: moment().add(1, 'day').format('YYYY-MM-DD'),
-      repeat: repeatOption,
     };
 
     const notificationId = await scheduleNotification(newTask);
@@ -407,17 +357,6 @@ export default function TomorrowScreen() {
                       >
                         {item.time}
                       </Text>
-                      {item.repeat && item.repeat !== 'none' && (
-                        <View 
-                          style={[
-                            styles.repeatDot,
-                            {
-                              backgroundColor: wouldBeOverdue(item.time) ? "#FF0000" : 
-                                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
-                            }
-                          ]} 
-                        />
-                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -525,12 +464,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-  },
-  repeatDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CFCFCF',
   },
   timeText: {
     fontSize: Platform.select({ web: 16, default: 14 }),

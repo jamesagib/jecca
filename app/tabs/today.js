@@ -20,7 +20,6 @@ Notifications.setNotificationHandler({
 const TASKS_KEY = 'tasks'; // Use single storage key for all tasks
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
-const REPEAT_KEY = 'selected_repeat'; // Match the key used in timePicker.js
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -108,33 +107,6 @@ export default function TodayScreen() {
 
   // Removed duplicate notification permission request since it's handled in onboarding
 
-  const getNextOccurrence = (task) => {
-    if (!task.repeat || task.repeat === 'none') return null;
-
-    const currentDate = moment();
-    const taskTime = moment(task.time, 'h:mma');
-    let nextDate = moment().hours(taskTime.hours()).minutes(taskTime.minutes());
-
-    switch (task.repeat) {
-      case 'daily':
-        nextDate = nextDate.add(1, 'day');
-        break;
-      case 'weekdays':
-        nextDate = nextDate.add(1, 'day');
-        while (nextDate.day() === 0 || nextDate.day() === 6) {
-          nextDate = nextDate.add(1, 'day');
-        }
-        break;
-      case 'weekly':
-        nextDate = nextDate.add(1, 'week');
-        break;
-      case 'monthly':
-        nextDate = nextDate.add(1, 'month');
-        break;
-    }
-    return nextDate;
-  };
-
   const scheduleNotification = async (task) => {
     try {
       if (task.notificationId) {
@@ -154,12 +126,8 @@ export default function TodayScreen() {
 
       // If the time has already passed today, don't schedule
       if (notificationTime.isBefore(now)) {
-        if (task.repeat && task.repeat !== 'none') {
-          notificationTime = getNextOccurrence(task);
-        } else {
-          console.log('Time has already passed for today, not scheduling notification');
-          return;
-        }
+        console.log('Time has already passed for today, not scheduling notification');
+        return;
       }
 
       // Schedule the notification with proper date
@@ -189,27 +157,6 @@ export default function TodayScreen() {
       if (task?.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
-      
-      // If task repeats, create next occurrence
-      if (task.repeat && task.repeat !== 'none') {
-        const nextDate = getNextOccurrence(task);
-        if (nextDate) {
-          const newTask = {
-            ...task,
-            id: Date.now(),
-            date: nextDate.format('YYYY-MM-DD'),
-          };
-          const notificationId = await scheduleNotification(newTask);
-          if (notificationId) {
-            newTask.notificationId = notificationId;
-          }
-          const updatedTasks = tasks.filter(t => t.id !== id).concat(newTask);
-          setTasks(updatedTasks);
-          await saveTasks(updatedTasks);
-          return;
-        }
-      }
-      
       const updatedTasks = tasks.filter(t => t.id !== id);
       setTasks(updatedTasks);
       await saveTasks(updatedTasks);
@@ -239,14 +186,12 @@ export default function TodayScreen() {
   const handleSubmit = async () => {
     if (text.trim() === '') return;
     const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
-    const repeatOption = await storage.getItem(REPEAT_KEY) || 'none';
 
     const newTask = {
       id: Date.now(),
       title: text.trim(),
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
-      repeat: repeatOption,
     };
 
     const notificationId = await scheduleNotification(newTask);
@@ -386,17 +331,6 @@ export default function TodayScreen() {
                       >
                         {item.time}
                       </Text>
-                      {item.repeat && item.repeat !== 'none' && (
-                        <View 
-                          style={[
-                            styles.repeatDot,
-                            {
-                              backgroundColor: isOverdue(item.time) ? "#FF0000" : 
-                                             doneTasks.includes(item.id) ? "#212121" : "#CFCFCF"
-                            }
-                          ]} 
-                        />
-                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -503,12 +437,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-  },
-  repeatDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CFCFCF',
   },
   timeText: {
     fontSize: Platform.select({ web: 16, default: 14 }),
