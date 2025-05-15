@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
-    width: Platform.OS === 'web' ? '45%' : '80%',
+    width: Platform.OS === 'web' ? '45%' : '90%',
     alignItems: 'center',
     paddingHorizontal: 20,
     marginTop: Platform.OS === 'web' ? 50 : 0,
