@@ -4,7 +4,7 @@
     "slug": "jecca",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/jecca.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "jecca",
@@ -23,7 +23,7 @@
         "backgroundColor": "#CFCFCF",
         "fadeOutDuration": 500
       },
-      "bundleIdentifier": "com.jamesagib.jecca",
+      "bundleIdentifier": "com.webcheer.jecca",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -51,10 +51,7 @@
         "expo-notifications",
         {
           "icon": "./assets/splash-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/notification.wav"
-          ]
+          "color": "#ffffff"
         }
       ]
     ],
