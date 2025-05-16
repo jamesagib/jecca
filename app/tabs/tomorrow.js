@@ -434,8 +434,9 @@ const styles = StyleSheet.create({
     flex: 1,
     width: Platform.OS === 'web' ? '45%' : '90%',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 20,
-    marginTop: Platform.OS === 'web' ? 50 : 0,
+    position: 'relative',
   },
   reminderContainer: {
     flexDirection: 'row',
@@ -523,15 +524,22 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   taskListContainer: {
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Platform.select({ web: 0, default: 10 }),
+    maxWidth: Platform.select({ web: '100%', default: 500 }),
+    alignSelf: 'center',
   },
   inputSection: {
     width: '100%',

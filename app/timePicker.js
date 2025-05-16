@@ -14,6 +14,7 @@ export default function TimePicker() {
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['50%'], []); 
   const [time, setTime] = useState(new Date());
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -28,14 +29,20 @@ export default function TimePicker() {
     };
     
     loadInitialData();
-    setTimeout(() => {
-      bottomSheetRef.current?.snapToIndex(0);
+    // Delay opening the bottom sheet to prevent crash
+    const timer = setTimeout(() => {
+      setIsOpen(true);
     }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {
-      router.back();
+      setIsOpen(false);
+      setTimeout(() => {
+        router.back();
+      }, 100);
     }
   }, [router]);
 
@@ -69,10 +76,10 @@ export default function TimePicker() {
       const formattedTime = moment(selectedTime).format('h:mma');
       await storage.setItem(TIME_KEY, formattedTime);
       
-      bottomSheetRef.current?.close();
+      setIsOpen(false);
       setTimeout(() => {
         router.back();
-      }, 300);
+      }, 100);
     } catch (error) {
       console.error('Error saving:', error);
     }
@@ -121,7 +128,7 @@ export default function TimePicker() {
     <GestureHandlerRootView style={styles.container}>
       <BottomSheet
         ref={bottomSheetRef}
-        index={-1}
+        index={isOpen ? 0 : -1}
         snapPoints={snapPoints}
         onChange={handleSheetChanges}
         enablePanDownToClose={true}
@@ -191,7 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   sheetBackground: {
     backgroundColor: 'white',
