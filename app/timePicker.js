@@ -13,36 +13,37 @@ export default function TimePicker() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['50%'], []); 
+  // Initialize with current time
   const [time, setTime] = useState(new Date());
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const loadInitialData = async () => {
+    const loadInitialTime = async () => {
       try {
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
-          setTime(moment(storedTime, 'h:mma').toDate());
+          const parsedTime = moment(storedTime, 'h:mma');
+          if (parsedTime.isValid()) {
+            setTime(parsedTime.toDate());
+          }
+        } else {
+          // If no stored time, use current time rounded to nearest minute
+          const now = new Date();
+          now.setSeconds(0);
+          now.setMilliseconds(0);
+          setTime(now);
         }
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        console.error('Error loading time:', error);
       }
-    };
-    
-    loadInitialData();
-    // Delay opening the bottom sheet to prevent crash
-    const timer = setTimeout(() => {
       setIsOpen(true);
-    }, 100);
-
-    return () => clearTimeout(timer);
+    };
+    loadInitialTime();
   }, []);
 
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {
-      setIsOpen(false);
-      setTimeout(() => {
-        router.back();
-      }, 100);
+      router.back();
     }
   }, [router]);
 
@@ -56,52 +57,39 @@ export default function TimePicker() {
     />
   ), []);
 
+  const saveAndClose = async (selectedTime) => {
+    try {
+      const formattedTime = moment(selectedTime).format('h:mma');
+      await storage.setItem(TIME_KEY, formattedTime);
+      router.back();
+    } catch (error) {
+      console.error('Error saving time:', error);
+    }
+  };
+
   const handleTimeChange = (event, selectedDate) => {
     if (selectedDate) {
       setTime(selectedDate);
       if (Platform.OS === 'android') {
-        handleSave(selectedDate);
+        saveAndClose(selectedDate);
       }
     }
   };
 
-  const handlePresetTime = (presetTime) => {
-    const parsedTime = moment(presetTime, 'h:mma').toDate();
+  const handlePresetTime = async (presetTimeStr) => {
+    const parsedTime = moment(presetTimeStr, 'h:mma').toDate();
     setTime(parsedTime);
-    handleSave(parsedTime);
+    await saveAndClose(parsedTime);
   };
-
-  const handleSave = async (selectedTime = time) => {
-    try {
-      const formattedTime = moment(selectedTime).format('h:mma');
-      await storage.setItem(TIME_KEY, formattedTime);
-      
-      setIsOpen(false);
-      setTimeout(() => {
-        router.back();
-      }, 100);
-    } catch (error) {
-      console.error('Error saving:', error);
-    }
-  };
-
-  const presetTimes = [
-    '7:00am', '8:00am', '9:00am', '10:00am',
-    '11:00am', '12:00pm', '1:00pm', '2:00pm',
-    '3:00pm', '4:00pm', '5:00pm', '6:00pm',
-    '7:00pm', '8:00pm', '9:00pm', '10:00pm'
-  ];
 
   const WebTimePicker = () => {
-    const handleWebTimeChange = (event) => {
+    const handleWebTimeChange = async (event) => {
       const timeString = event.target.value;
       if (timeString) {
         const [hours, minutes] = timeString.split(':');
-        const date = new Date();
-        date.setHours(parseInt(hours));
-        date.setMinutes(parseInt(minutes));
+        const date = moment().hours(parseInt(hours)).minutes(parseInt(minutes)).toDate();
         setTime(date);
-        handleSave(date);
+        await saveAndClose(date);
       }
     };
 
@@ -124,6 +112,13 @@ export default function TimePicker() {
     );
   };
 
+  const presetTimes = [
+    '7:00am', '8:00am', '9:00am', '10:00am',
+    '11:00am', '12:00pm', '1:00pm', '2:00pm',
+    '3:00pm', '4:00pm', '5:00pm', '6:00pm',
+    '7:00pm', '8:00pm', '9:00pm', '10:00pm'
+  ];
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <BottomSheet
@@ -145,20 +140,20 @@ export default function TimePicker() {
               style={styles.presetContainer}
               contentContainerStyle={styles.presetContentContainer}
             >
-              {presetTimes.map((time) => (
+              {presetTimes.map((timeStr) => (
                 <TouchableOpacity
-                  key={time}
+                  key={timeStr}
                   style={[
                     styles.presetButton,
-                    moment(time, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonSelected
+                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonSelected
                   ]}
-                  onPress={() => handlePresetTime(time)}
+                  onPress={() => handlePresetTime(timeStr)}
                 >
                   <Text style={[
                     styles.presetButtonText,
-                    moment(time, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonTextSelected
+                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonTextSelected
                   ]}>
-                    {time}
+                    {timeStr}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -180,12 +175,14 @@ export default function TimePicker() {
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.confirmButton}
-            onPress={handleSave}
-          >
-            <Text style={styles.confirmButtonText}>Set Time</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={() => saveAndClose(time)}
+            >
+              <Text style={styles.confirmButtonText}>Set Time</Text>
+            </TouchableOpacity>
+          )}
         </BottomSheetView>
       </BottomSheet>
     </GestureHandlerRootView>

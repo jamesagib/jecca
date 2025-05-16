@@ -29,7 +29,7 @@ export default function TodayScreen() {
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
-  const [selectedTime, setSelectedTime] = useState('7am');
+  const [selectedTime, setSelectedTime] = useState('7:00am');
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
 
@@ -113,39 +113,56 @@ export default function TodayScreen() {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
 
-      // Parse the time string (e.g., "7am" or "3:30pm")
       const timeStr = task.time.toLowerCase();
-      const now = moment();
-      let notificationTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
-      
-      // Set notification for today with the selected time
-      notificationTime = moment()
-        .hours(notificationTime.hours())
-        .minutes(notificationTime.minutes())
-        .seconds(0);
+      const [time, period] = timeStr.match(/(\d+):?(\d*)\s*(am|pm)/i).slice(1);
+      let hours = parseInt(time);
+      let minutes = 0;
 
-      // If the time has already passed today, don't schedule
-      if (notificationTime.isBefore(now)) {
-        console.log('Time has already passed for today, not scheduling notification');
-        return;
+      // Handle cases like "7:30am" vs "7am"
+      if (timeStr.includes(':')) {
+        minutes = parseInt(timeStr.split(':')[1].replace(/[^\d]/g, ''));
       }
 
-      // Schedule the notification with proper date
+      // Adjust hours for PM
+      if (period.toLowerCase() === 'pm' && hours !== 12) {
+        hours += 12;
+      } else if (period.toLowerCase() === 'am' && hours === 12) {
+        hours = 0;
+      }
+
+      // Get the current date components
+      const now = moment();
+      const targetTime = moment()
+        .hours(hours)
+        .minutes(minutes)
+        .seconds(0)
+        .milliseconds(0);
+
+      // If time has already passed today, don't schedule
+      if (targetTime.isBefore(now)) {
+        console.log('Time has already passed for today, not scheduling notification');
+        return null;
+      }
+
+      // Schedule the notification with exact trigger time
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
           body: `${task.title}`,
           sound: true,
+          priority: 'max'
         },
         trigger: {
-          date: notificationTime.toDate(), // Use the full date object
+          channelId: 'reminders',
+          date: targetTime.toDate(),
         },
       });
 
-      // Save the notification ID with the task
+      console.log(`Scheduled notification for ${task.title} at ${targetTime.format('YYYY-MM-DD HH:mm:ss')}`);
       return notificationId;
     } catch (error) {
       console.error('Error scheduling notification:', error);
+      return null;
     }
   };
 
@@ -262,18 +279,18 @@ export default function TodayScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1}}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={60}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/settings')}>
-            <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
+          <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
+        </TouchableOpacity>
+      </View>
 
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <View style={styles.listContainer}>
           <View style={styles.mainContent}>
             <View style={styles.centerContainer}>
@@ -363,20 +380,20 @@ export default function TodayScreen() {
             </View>
           </View>
         </View>
+      </KeyboardAvoidingView>
 
-        <View style={styles.bottomBar}>
-          {tabs.map((tab) => (
-            <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
-              <Text
-                style={[styles.tabText, tab === 'today' && styles.selectedText]}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      <View style={styles.bottomBar}>
+        {tabs.map((tab) => (
+          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
+            <Text
+              style={[styles.tabText, tab === 'today' && styles.selectedText]}
+            >
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -403,7 +420,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
-    width: Platform.OS === 'web' ? '45%' : '90%',
+    width: Platform.OS === 'web' ? '45%' : '97%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -538,5 +555,9 @@ const styles = StyleSheet.create({
     color: '#212121',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
   },
 });

@@ -38,7 +38,7 @@ export default function TomorrowScreen() {
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
-  const [selectedTime, setSelectedTime] = useState('7am');
+  const [selectedTime, setSelectedTime] = useState('7:00am');
   const tabs = ['today', 'tomorrow'];
   const inputRef = useRef(null);
   const [isInputVisible, setIsInputVisible] = useState(false);
@@ -106,37 +106,54 @@ export default function TomorrowScreen() {
   // Schedule notification for tomorrow's task
   const scheduleNotification = async (task) => {
     try {
-      // Cancel any existing notification for this task
       if (task.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
 
-      // Parse the time string (e.g., "7am" or "3:30pm")
       const timeStr = task.time.toLowerCase();
-      const now = moment();
-      let notificationTime = moment(timeStr, ['ha', 'h:mma']); // Parse both "7am" and "3:30pm" formats
-      
-      // Set notification for tomorrow with the selected time
-      notificationTime = moment()
-        .add(1, 'day')
-        .hours(notificationTime.hours())
-        .minutes(notificationTime.minutes())
-        .seconds(0);
+      const [time, period] = timeStr.match(/(\d+):?(\d*)\s*(am|pm)/i).slice(1);
+      let hours = parseInt(time);
+      let minutes = 0;
 
+      // Handle cases like "7:30am" vs "7am"
+      if (timeStr.includes(':')) {
+        minutes = parseInt(timeStr.split(':')[1].replace(/[^\d]/g, ''));
+      }
+
+      // Adjust hours for PM
+      if (period.toLowerCase() === 'pm' && hours !== 12) {
+        hours += 12;
+      } else if (period.toLowerCase() === 'am' && hours === 12) {
+        hours = 0;
+      }
+
+      // Set notification time for tomorrow
+      const targetTime = moment()
+        .add(1, 'day')
+        .hours(hours)
+        .minutes(minutes)
+        .seconds(0)
+        .milliseconds(0);
+
+      // Schedule the notification with exact trigger time
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
           body: `${task.title}`,
           sound: true,
+          priority: 'max'
         },
         trigger: {
-          date: notificationTime.toDate(),
+          channelId: 'reminders',
+          date: targetTime.toDate(),
         },
       });
 
+      console.log(`Scheduled notification for ${task.title} at ${targetTime.format('YYYY-MM-DD HH:mm:ss')}`);
       return notificationId;
     } catch (error) {
       console.error('Error scheduling notification:', error);
+      return null;
     }
   };
 
@@ -286,20 +303,20 @@ export default function TomorrowScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={60}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/settings')}>
-            <Text style={styles.dateText}>
-              {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
-            </Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
+          <Text style={styles.dateText}>
+            {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <View style={styles.listContainer}>
           <View style={styles.mainContent}>
             <View style={styles.centerContainer}>
@@ -389,23 +406,23 @@ export default function TomorrowScreen() {
             </View>
           </View>
         </View>
+      </KeyboardAvoidingView>
 
-        <View style={styles.bottomBar}>
-          {tabs.map((tab) => (
-            <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === 'tomorrow' && styles.selectedText,
-                ]}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      <View style={styles.bottomBar}>
+        {tabs.map((tab) => (
+          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'tomorrow' && styles.selectedText,
+              ]}
+            >
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -432,7 +449,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
-    width: Platform.OS === 'web' ? '45%' : '90%',
+    width: Platform.OS === 'web' ? '45%' : '97%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -564,5 +581,9 @@ const styles = StyleSheet.create({
     color: '#212121',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
   },
 });
