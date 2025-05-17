@@ -4,6 +4,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from
 import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { storage } from './utils/storage';
+import { useAuthStore } from './utils/auth';
+import { supabase } from '../utils/supabase';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -11,8 +13,9 @@ const TASKS_KEY = 'tasks';
 export default function SettingsModal() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['25%'], []);
+  const snapPoints = useMemo(() => ['35%'], []);
   const [isEnabled, setIsEnabled] = useState(false);
+  const { user, signOut } = useAuthStore();
 
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {
@@ -64,6 +67,16 @@ export default function SettingsModal() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace('/onboarding1');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out.');
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
       <BottomSheet
@@ -79,6 +92,18 @@ export default function SettingsModal() {
         handleStyle={styles.handleStyle}
       >
         <BottomSheetView style={styles.contentContainer}>
+          {user && (
+            <View style={styles.accountSection}>
+              <Text style={styles.emailText}>{user.email}</Text>
+              <TouchableOpacity 
+                style={styles.signOutButton} 
+                onPress={handleSignOut}
+              >
+                <Text style={styles.signOutButtonText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.settingContainer}>
             <View style={styles.textContainer}>
               <Text style={styles.settingName}>Remove reminder after completion</Text>
@@ -201,4 +226,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
+  accountSection: {
+    width: '100%',
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEFEF',
+    alignItems: 'center',
+  },
+  emailText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#212121',
+    marginBottom: 10,
+  },
+  signOutButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  signOutButtonText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#FF3B30',
+  }
 });

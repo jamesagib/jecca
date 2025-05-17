@@ -1,20 +1,46 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
+import GoogleAuth from './components/GoogleAuth';
+import { useAuthStore } from './utils/auth';
+import { supabase } from '../utils/supabase';
 
 export default function Onboarding1() {
+  const { user, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        router.push('/onboarding2');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuthSuccess = (user) => {
+    // If successful auth, onAuthStateChange will handle navigation
+    console.log('Successfully authenticated:', user.email);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>welcome to the simplest app on your phone: jecca.</Text>
-        <Text style={styles.subtitle}>we're going to show you how to use the app, & don't worry, no login needed.</Text>
-      </View>
-      <View style={styles.buttonContainer}>
-        <Pressable 
-          style={styles.button}
-          onPress={() => router.push('/onboarding2')}
-        >
-          <Text style={styles.buttonText}>next</Text>
-        </Pressable>
+        <Text style={styles.subtitle}>sign in to save your reminders and sync across devices.</Text>
+        
+        <View style={styles.authContainer}>
+          <GoogleAuth onSuccess={handleAuthSuccess} />
+          
+          <TouchableOpacity 
+            style={styles.skipButton}
+            onPress={() => router.push('/onboarding2')}
+          >
+            <Text style={styles.skipButtonText}>continue without signing in</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -48,21 +74,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     color: '#666',
     textAlign: 'center',
+    marginBottom: 40,
   },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 34,
-    left: 20,
-    right: 20,
+  authContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
-  button: {
-    backgroundColor: '#000',
+  skipButton: {
     padding: 16,
-    borderRadius: 8,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
+  skipButtonText: {
+    color: '#666',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
   },
