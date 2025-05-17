@@ -67,7 +67,10 @@
       "router": {},
       "eas": {
         "projectId": "0be2e439-23c0-41fb-9351-824b644439c0"
-      }
+      },
+      "iosClientId": "731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk.apps.googleusercontent.com",
+      "androidClientId": "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+      "expoClientId": "YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com"
     }
   }
 }

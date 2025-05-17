@@ -6,7 +6,6 @@ import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import { supabase } from '../utils/supabase';
 import { syncReminders } from './utils/sync';
 
 SplashScreen.preventAutoHideAsync();
@@ -17,7 +16,7 @@ export default function RootLayout() {
   });
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const { initialize, handleAuthStateChange } = useAuthStore();
+  const { initialize } = useAuthStore();
 
   useEffect(() => {
     if (!fontsLoaded) return;
@@ -26,23 +25,12 @@ export default function RootLayout() {
       try {
         // Initialize auth state
         await initialize();
-
-        // Setup auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          handleAuthStateChange({ event, session });
-          if (event === 'SIGNED_IN') {
-            syncReminders(); // Sync reminders when user signs in
-          }
-        });
-
+        // You may want to sync reminders here if user is signed in
+        syncReminders();
         const status = await storage.getItem('onboardingComplete');
         setIsOnboardingComplete(status === 'true');
         setInitializing(false);
         await SplashScreen.hideAsync();
-
-        return () => {
-          subscription?.unsubscribe();
-        };
       } catch (e) {
         console.error('Error during initialization:', e);
         setIsOnboardingComplete(false);

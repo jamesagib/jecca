@@ -3,26 +3,19 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import GoogleAuth from './components/GoogleAuth';
 import { useAuthStore } from './utils/auth';
-import { supabase } from '../utils/supabase';
 
 export default function Onboarding1() {
   const { user, initialize } = useAuthStore();
 
   useEffect(() => {
     initialize();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        router.push('/onboarding2');
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // You may want to add logic here to handle auth state changes
   }, []);
 
   const handleAuthSuccess = (user) => {
-    // If successful auth, onAuthStateChange will handle navigation
+    // If successful auth, you may want to navigate or update state
     console.log('Successfully authenticated:', user.email);
+    router.push('/onboarding2');
   };
 
   return (

@@ -1,11 +1,10 @@
-import { useState } from 'react';
-import { useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import { supabase } from '../utils/supabase';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -16,6 +15,12 @@ export default function SettingsModal() {
   const snapPoints = useMemo(() => ['35%'], []);
   const [isEnabled, setIsEnabled] = useState(false);
   const { user, signOut } = useAuthStore();
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/onboarding1');
+    }
+  }, [user, router]);
 
   const handleSheetChanges = useCallback((index) => {
     if (index === -1) {

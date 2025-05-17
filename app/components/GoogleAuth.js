@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { supabase } from '../../utils/supabase';
+import { useAuthStore } from '../utils/auth';
 import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function GoogleAuth({ onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
@@ -26,14 +27,9 @@ export default function GoogleAuth({ onSuccess }) {
 
   const handleGoogleSignIn = async (idToken) => {
     try {
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
-
-      if (error) throw error;
-      if (data?.user) {
-        onSuccess(data.user);
+      const result = await signInWithGoogle(idToken);
+      if (result && result.user) {
+        onSuccess(result.user);
       }
     } catch (error) {
       console.error('Error signing in with Google:', error.message);

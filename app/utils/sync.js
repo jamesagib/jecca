@@ -1,10 +1,10 @@
-import { supabase } from '../../utils/supabase';
+import { getReminders, upsertReminders } from '../../utils/supabaseApi';
 import { storage } from './storage';
 import { useAuthStore } from './auth';
 
 export const syncReminders = async () => {
-  const { user } = useAuthStore.getState();
-  if (!user) return;
+  const { user, accessToken } = useAuthStore.getState();
+  if (!user || !accessToken) return;
 
   try {
     // Get local reminders
@@ -12,12 +12,7 @@ export const syncReminders = async () => {
     const parsedLocalReminders = localReminders ? JSON.parse(localReminders) : [];
 
     // Get remote reminders
-    const { data: remoteReminders, error } = await supabase
-      .from('reminders')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (error) throw error;
+    const remoteReminders = await getReminders(user.id, accessToken);
 
     // Merge reminders, preferring local ones in case of conflict
     const mergedReminders = mergeReminders(parsedLocalReminders, remoteReminders);
@@ -26,13 +21,14 @@ export const syncReminders = async () => {
     await storage.setItem('tasks', JSON.stringify(mergedReminders));
 
     // Update remote storage with user email
-    await supabase.from('reminders').upsert(
+    await upsertReminders(
       mergedReminders.map(reminder => ({
         ...reminder,
         user_id: user.id,
         user_email: user.email,
         synced_at: new Date().toISOString()
-      }))
+      })),
+      accessToken
     );
 
     return mergedReminders;
