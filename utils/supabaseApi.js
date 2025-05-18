@@ -44,6 +44,43 @@ export async function signInWithGoogleIdToken(idToken) {
   return res.json();
 }
 
+// --- OTP AUTH (REST API) ---
+export async function sendOtp(email) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+    method: 'POST',
+    headers: {
+      'apikey': supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email,
+      type: 'email',    // Required for OTP code
+      channel: 'email', // Required for OTP code
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    return { data: null, error: { message: data.error_description || data.error || 'Failed to send code.' } };
+  }
+  return { data, error: null };
+}
+
+export async function verifyOtp(email, token) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+    method: 'POST',
+    headers: {
+      'apikey': supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, token, type: 'email' }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    return { data: null, error: { message: data.error_description || data.error || 'Invalid code.' } };
+  }
+  return { data, error: null };
+}
+
 // --- DATABASE ---
 export async function getReminders(userId, accessToken) {
   const res = await fetch(`${supabaseUrl}/rest/v1/reminders?user_id=eq.${userId}`, {

@@ -60,6 +60,7 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding1" />
             <Stack.Screen name="onboarding2" />
             <Stack.Screen name="onboarding3" />
+            <Stack.Screen name="email-auth" />
           </>
         ) : (
           <>

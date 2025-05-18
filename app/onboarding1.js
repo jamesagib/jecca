@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import GoogleAuth from './components/GoogleAuth';
 import { useAuthStore } from './utils/auth';
+import EmailAuth from './components/EmailAuth';
 
 export default function Onboarding1() {
   const { user, initialize } = useAuthStore();
@@ -26,7 +27,12 @@ export default function Onboarding1() {
         
         <View style={styles.authContainer}>
           <GoogleAuth onSuccess={handleAuthSuccess} />
-          
+          <TouchableOpacity 
+            style={styles.emailButton}
+            onPress={() => router.push('/email-auth')}
+          >
+            <Text style={styles.emailButtonText}>Sign in or Sign up with Email</Text>
+          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.skipButton}
             onPress={() => router.push('/onboarding2')}
@@ -80,6 +86,20 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     color: '#666',
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+  },
+  emailButton: {
+    backgroundColor: '#fff',
+    borderColor: '#000',
+    borderWidth: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  emailButtonText: {
+    color: '#000',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
   },

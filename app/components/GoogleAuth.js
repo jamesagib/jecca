@@ -4,8 +4,11 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { useAuthStore } from '../utils/auth';
 import Constants from 'expo-constants';
+import { makeRedirectUri } from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
+
+console.log('Expo Google OAuth redirect URI:', makeRedirectUri());
 
 export default function GoogleAuth({ onSuccess }) {
   const [loading, setLoading] = useState(false);
