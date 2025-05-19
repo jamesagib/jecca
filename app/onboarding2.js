@@ -42,12 +42,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 16,
     textAlign: 'center',
+    textTransform: 'lowercase',
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#666',
     textAlign: 'center',
+    textTransform: 'lowercase',
   },
   buttonContainer: {
     position: 'absolute',
@@ -65,5 +67,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
 });

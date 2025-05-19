@@ -13,9 +13,14 @@ export default function TimePicker() {
   const router = useRouter();
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['50%'], []); 
-  // Initialize with current time
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState(() => {
+    const now = new Date();
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    return now;
+  });
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadInitialTime = async () => {
@@ -26,17 +31,13 @@ export default function TimePicker() {
           if (parsedTime.isValid()) {
             setTime(parsedTime.toDate());
           }
-        } else {
-          // If no stored time, use current time rounded to nearest minute
-          const now = new Date();
-          now.setSeconds(0);
-          now.setMilliseconds(0);
-          setTime(now);
         }
       } catch (error) {
         console.error('Error loading time:', error);
+      } finally {
+        setIsLoading(false);
+        setIsOpen(true);
       }
-      setIsOpen(true);
     };
     loadInitialTime();
   }, []);
@@ -118,6 +119,10 @@ export default function TimePicker() {
     '3:00pm', '4:00pm', '5:00pm', '6:00pm',
     '7:00pm', '8:00pm', '9:00pm', '10:00pm'
   ];
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={styles.container}>

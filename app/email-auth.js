@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 24,
     textAlign: 'center',
+    textTransform: 'lowercase',
   },
   subtitle: {
     fontSize: 16,
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 16,
+    textTransform: 'lowercase',
   },
   input: {
     backgroundColor: '#f5f5f5',
@@ -124,6 +126,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
   secondaryButton: {
     alignItems: 'center',
@@ -133,12 +136,14 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
   error: {
     color: 'red',
     marginBottom: 10,
     textAlign: 'center',
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
   backButton: {
     alignItems: 'center',
@@ -149,5 +154,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
 }); 

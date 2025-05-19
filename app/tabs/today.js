@@ -400,7 +400,7 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -414,9 +414,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dateText: {
-    fontSize: Platform.select({ web: 36, default: 28 }),
+    fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
+    textTransform: 'lowercase',
   },
   listContainer: {
     flex: 1,
@@ -442,6 +443,7 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     flexShrink: 1,
     marginRight: 10,
+    textTransform: 'lowercase',
   },
   timeContainer: {
     marginLeft: 5,
@@ -463,6 +465,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: Platform.select({ web: 24, default: 22 }),
     padding: 1,
+    textTransform: 'lowercase',
   },
   newItemContainer: {
     flexDirection: 'row',
@@ -475,6 +478,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    marginRight: 10,
+    textTransform: 'lowercase',
   },
   inputTimeContainer: {
     marginLeft: 10,
@@ -502,9 +510,11 @@ const styles = StyleSheet.create({
     fontSize: Platform.select({ web: 32, default: 25 }),
     fontFamily: 'Nunito_800ExtraBold',
     color: '#ccc',
+    textTransform: 'lowercase',
   },
   selectedText: {
     color: '#212121',
+    textTransform: 'lowercase',
   },
   emptyStateContainer: {
     alignItems: 'center',
@@ -548,6 +558,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
+    textTransform: 'lowercase',
   },
   emptyStateText: {
     fontSize: Platform.select({ web: 28, default: 21 }),
@@ -555,6 +566,7 @@ const styles = StyleSheet.create({
     color: '#212121',
     textAlign: 'center',
     marginBottom: 20,
+    textTransform: 'lowercase',
   },
   keyboardAvoidingView: {
     flex: 1,

@@ -31,7 +31,7 @@ export default function Onboarding1() {
             style={styles.emailButton}
             onPress={() => router.push('/email-auth')}
           >
-            <Text style={styles.emailButtonText}>Sign in or Sign up with Email</Text>
+            <Text style={styles.emailButtonText}>sign in or sign up with email</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.skipButton}
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 16,
     textAlign: 'center',
+    textTransform: 'lowercase',
   },
   subtitle: {
     fontSize: 16,
@@ -74,6 +75,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 40,
+    textTransform: 'lowercase',
   },
   authContainer: {
     width: '100%',
@@ -88,6 +90,7 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
   emailButton: {
     backgroundColor: '#fff',
@@ -102,5 +105,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
 });

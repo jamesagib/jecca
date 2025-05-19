@@ -67,5 +67,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
 });

@@ -185,11 +185,13 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 12,
     textAlign: 'center',
+    textTransform: 'lowercase',
   },
   subtitle: {
     fontSize: 16,
     color: '#ADADAD',
     marginBottom: 24,
+    textTransform: 'lowercase',
   },
   clearButton: {
     marginTop: 10,
@@ -203,6 +205,7 @@ const styles = StyleSheet.create({
     color: 'white',  
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
   },
   settingContainer: {
     flexDirection: 'row',
@@ -218,14 +221,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
-    lineHeight: 22
+    lineHeight: 22,
+    textTransform: 'lowercase',
   },
   madeWithLoveText: {
     fontSize: 16,
     color: '#212121',
     textAlign: 'center',
     fontFamily: 'Nunito_800ExtraBold',
-    marginTop: 8  // Add a small top margin
+    marginTop: 8,  // Add a small top margin
+    textTransform: 'lowercase',
   },
   modalContainer: {
     flex: 1,
@@ -244,6 +249,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     color: '#212121',
     marginBottom: 10,
+    textTransform: 'lowercase',
   },
   signOutButton: {
     paddingVertical: 8,
@@ -255,5 +261,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#FF3B30',
+    textTransform: 'lowercase',
   }
 });
