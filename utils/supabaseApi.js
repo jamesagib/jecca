@@ -46,19 +46,21 @@ export async function signInWithGoogleIdToken(idToken) {
 
 // --- OTP AUTH (REST API) ---
 export async function sendOtp(email) {
+  const body = JSON.stringify({
+    email,
+    type: 'email', // Required for OTP code (keep this)
+  });
+  console.log('OTP Request Body:', body);
   const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
     method: 'POST',
     headers: {
       'apikey': supabaseAnonKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      email,
-      type: 'email',    // Required for OTP code
-      channel: 'email', // Required for OTP code
-    }),
+    body,
   });
   const data = await res.json();
+  console.log('OTP API response:', data);
   if (!res.ok) {
     return { data: null, error: { message: data.error_description || data.error || 'Failed to send code.' } };
   }

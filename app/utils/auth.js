@@ -78,7 +78,7 @@ const useAuthStore = create((set) => ({
     set({ loading: true, error: null, otpSent: false, otpEmail: '' });
     try {
       const { data, error } = await sendOtp(email);
-      if (error) throw new Error(data.error_description || data.error || 'Failed to send code.');
+      if (error) throw new Error(error.message || 'Failed to send code.');
       set({ otpSent: true, otpEmail: email, loading: false });
       return { data };
     } catch (error) {
