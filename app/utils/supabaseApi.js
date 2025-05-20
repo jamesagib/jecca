@@ -1,3 +1,5 @@
+import { supabaseUrl, supabaseAnonKey } from './supabaseConfig';
+
 // --- PUSH NOTIFICATIONS ---
 export async function savePushToken(userId, pushToken, deviceId, accessToken) {
   try {
@@ -78,6 +80,124 @@ export async function scheduleReminder(reminderId, userId, accessToken) {
     return { data: await res.json(), error: null };
   } catch (error) {
     console.error('Error scheduling reminder:', error);
+    return { data: null, error };
+  }
+}
+
+// --- REMINDERS ---
+export async function getReminders(userId, accessToken) {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/reminders?user_id=eq.${userId}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to get reminders');
+    }
+
+    return { data: await res.json(), error: null };
+  } catch (error) {
+    console.error('Error getting reminders:', error);
+    return { data: null, error };
+  }
+}
+
+export async function upsertReminders(reminders, accessToken) {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/reminders`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal,resolution=merge-duplicates',
+      },
+      body: JSON.stringify(reminders.map(reminder => ({
+        id: reminder.id,
+        title: reminder.title,
+        time: reminder.time,
+        date: reminder.date,
+        completed: reminder.completed || false,
+        user_id: reminder.user_id,
+        notification_id: reminder.notificationId,
+        synced_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }))),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      console.error('Supabase error response:', error);
+      throw new Error(error.message || 'Failed to upsert reminders');
+    }
+
+    return { data: await res.json(), error: null };
+  } catch (error) {
+    console.error('Error upserting reminders:', error);
+    return { data: null, error };
+  }
+}
+
+export async function updateReminderStatus(reminderId, userId, completed, accessToken) {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/reminders?id=eq.${reminderId}&user_id=eq.${userId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          completed,
+          updated_at: new Date().toISOString(),
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to update reminder status');
+    }
+
+    return { data: true, error: null };
+  } catch (error) {
+    console.error('Error updating reminder status:', error);
+    return { data: null, error };
+  }
+}
+
+export async function deleteReminder(reminderId, userId, accessToken) {
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/reminders?id=eq.${reminderId}&user_id=eq.${userId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to delete reminder');
+    }
+
+    return { data: true, error: null };
+  } catch (error) {
+    console.error('Error deleting reminder:', error);
     return { data: null, error };
   }
 } 

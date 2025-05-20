@@ -7,6 +7,9 @@ import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
+import { useAuthStore } from '../utils/auth';
+import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
+import { upsertReminders } from '../utils/supabaseApi';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -189,18 +192,41 @@ export default function TodayScreen() {
 
   const saveTasks = async (todayTasks) => {
     try {
-      const storedTasks = await storage.getItem(TASKS_KEY);
-      const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
+      const { user, accessToken } = useAuthStore.getState();
       const today = moment().format('YYYY-MM-DD');
       
-      // Remove today's tasks and add updated ones
+      // If user is logged in, save to Supabase first
+      if (user && accessToken) {
+        try {
+          // Add user information to tasks before saving
+          const tasksWithUser = todayTasks.map(task => ({
+            ...task,
+            user_id: user.id,
+            user_email: user.email,
+            synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }));
+          
+          // Save directly to Supabase
+          console.log('Saving to Supabase:', tasksWithUser);
+          const { error: upsertError, data } = await upsertReminders(tasksWithUser, accessToken);
+          console.log('Supabase response:', { data, error: upsertError });
+          if (upsertError) throw upsertError;
+        } catch (syncError) {
+          console.error('Error saving to Supabase:', syncError);
+          // Continue with local storage even if Supabase save fails
+        }
+      }
+
+      // Always maintain local storage as offline fallback
+      const storedTasks = await storage.getItem(TASKS_KEY);
+      const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
       const otherDaysTasks = allTasks.filter(task => task.date !== today);
       const newTasks = [...otherDaysTasks, ...todayTasks];
-      
       await storage.setItem(TASKS_KEY, JSON.stringify(newTasks));
-      await syncReminders(); // Sync with Supabase after local save
     } catch (error) {
       console.error('Error saving tasks:', error);
+      throw error;
     }
   };
 

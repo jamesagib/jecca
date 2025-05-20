@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+if you add code to today.js make sure to add the same code to tomorrow.js
