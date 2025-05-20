@@ -156,6 +156,14 @@ export default function TodayScreen() {
       }
 
       // Schedule the notification with exact trigger time
+      const triggerDate = targetTime.toDate();
+      console.log('Scheduling notification for:', {
+        title: task.title,
+        triggerTimestamp: triggerDate.getTime(),
+        triggerISO: triggerDate.toISOString(),
+        timeFromNow: moment.duration(targetTime.diff(now)).humanize()
+      });
+
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
@@ -165,7 +173,8 @@ export default function TodayScreen() {
         },
         trigger: {
           channelId: 'reminders',
-          date: targetTime.toDate(),
+          date: triggerDate,
+          seconds: Math.max(1, Math.floor(targetTime.diff(now) / 1000)), // Ensure at least 1 second delay
         },
       });
 

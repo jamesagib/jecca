@@ -84,20 +84,57 @@ const useAuthStore = create((set) => ({
 
   initialize: async () => {
     try {
+      set({ loading: true });
       const authData = await storage.getAuthData();
-      if (authData) {
-        set({ 
-          user: authData.user, 
-          accessToken: authData.accessToken,
-          loading: false,
-          initialized: true 
-        });
+      
+      if (authData?.user?.id && authData?.accessToken) {
+        // Validate the token by making a test API call
+        try {
+          const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            headers: {
+              'Authorization': `Bearer ${authData.accessToken}`,
+              'apikey': supabaseAnonKey
+            }
+          });
+          
+          if (response.ok) {
+            console.log('Auth token validated successfully');
+            set({ 
+              user: authData.user, 
+              accessToken: authData.accessToken,
+              loading: false,
+              initialized: true 
+            });
+            return;
+          } else {
+            console.log('Auth token validation failed, clearing auth data');
+            await storage.clearAuthData();
+          }
+        } catch (error) {
+          console.error('Error validating auth token:', error);
+          await storage.clearAuthData();
+        }
       } else {
-        set({ loading: false, initialized: true });
+        console.log('No valid auth data found during initialization');
+        await storage.clearAuthData();
       }
+      
+      set({ 
+        user: null,
+        accessToken: null,
+        loading: false, 
+        initialized: true 
+      });
     } catch (error) {
       console.error('Error initializing auth:', error);
-      set({ loading: false, initialized: true });
+      await storage.clearAuthData();
+      set({ 
+        user: null,
+        accessToken: null,
+        loading: false, 
+        initialized: true,
+        error: error.message 
+      });
     }
   },
 

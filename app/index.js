@@ -5,11 +5,14 @@ import { useAuthStore } from './utils/auth';
 
 export default function StartScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, initialized } = useAuthStore();
 
   useEffect(() => {
     async function checkInitialRoute() {
       try {
+        // Wait for auth to be initialized
+        if (!initialized) return;
+
         const onboardingComplete = await storage.getItem('onboardingComplete');
         
         // If user is logged in, go to today's tasks
@@ -18,21 +21,24 @@ export default function StartScreen() {
           return;
         }
         
-        // If onboarding is complete but no user, still show today's tasks
-        // This allows using the app without being logged in
-        if (onboardingComplete === 'true') {
+        // If onboarding is complete but no user, reset onboarding
+        if (onboardingComplete === 'true' && !user) {
+          await storage.setItem('onboardingComplete', 'false');
+          router.replace('/onboarding1');
+        } else if (onboardingComplete === 'true') {
           router.replace('/tabs/today');
         } else {
           router.replace('/onboarding1');
         }
       } catch (error) {
         console.error('Error checking initial route:', error);
+        await storage.setItem('onboardingComplete', 'false');
         router.replace('/onboarding1');
       }
     }
 
     checkInitialRoute();
-  }, [user]);
+  }, [user, initialized]);
 
   return null;
 }

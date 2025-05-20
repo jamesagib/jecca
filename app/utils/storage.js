@@ -35,9 +35,26 @@ class Storage {
   }
 
   async getAuthData() {
-    const authData = await this.getItem(AUTH_STORAGE_KEY);
-    if (!authData) return null;
-    return JSON.parse(authData);
+    try {
+      const authData = await this.getItem(AUTH_STORAGE_KEY);
+      if (!authData) {
+        console.log('No auth data found in storage');
+        return null;
+      }
+      
+      const parsedData = JSON.parse(authData);
+      console.log('Retrieved auth data:', {
+        hasUser: !!parsedData.user,
+        hasToken: !!parsedData.accessToken,
+        userId: parsedData.user?.id,
+        tokenPreview: parsedData.accessToken ? parsedData.accessToken.substring(0, 10) + '...' : 'none'
+      });
+      
+      return parsedData;
+    } catch (error) {
+      console.error('Error reading auth data:', error);
+      return null;
+    }
   }
 
   async clearAuthData() {

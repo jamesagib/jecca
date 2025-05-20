@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -83,6 +83,8 @@ export default function RootLayout() {
         await SplashScreen.hideAsync();
       } catch (e) {
         console.error('Error during initialization:', e);
+        // On error, reset to onboarding
+        await storage.setItem('onboardingComplete', 'false');
         setIsOnboardingComplete(false);
         setInitializing(false);
         await SplashScreen.hideAsync();
@@ -98,7 +100,16 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {isOnboardingComplete ? <MainLayout /> : <OnboardingLayout />}
+      {!user && isOnboardingComplete ? (
+        <View style={{ flex: 1 }}>
+          {storage.setItem('onboardingComplete', 'false')}
+          <OnboardingLayout />
+        </View>
+      ) : (
+        <View style={{ flex: 1 }}>
+          {isOnboardingComplete ? <MainLayout /> : <OnboardingLayout />}
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }

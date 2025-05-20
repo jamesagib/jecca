@@ -112,10 +112,17 @@ export async function getReminders(userId, accessToken) {
 
 export async function upsertReminders(reminders, accessToken) {
   try {
+    if (!accessToken) {
+      console.error('No access token provided for Supabase request');
+      return { data: null, error: new Error('No access token') };
+    }
+
     console.log('Making Supabase request with:', {
       url: `${supabaseUrl}/rest/v1/reminders`,
       hasAccessToken: !!accessToken,
-      reminderCount: reminders.length
+      tokenPreview: accessToken.substring(0, 10) + '...',
+      reminderCount: reminders.length,
+      firstReminder: reminders[0]
     });
 
     const formattedReminders = reminders.map(reminder => ({
