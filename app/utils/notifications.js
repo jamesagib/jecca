@@ -37,7 +37,7 @@ export async function registerForPushNotifications() {
 
     // Get the token
     token = (await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PROJECT_ID,
+      projectId: '0be2e439-23c0-41fb-9351-824b644439c0',
     })).data;
 
     // Store the token in Supabase if user is logged in
