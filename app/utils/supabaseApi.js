@@ -112,26 +112,36 @@ export async function getReminders(userId, accessToken) {
 
 export async function upsertReminders(reminders, accessToken) {
   try {
+    console.log('Making Supabase request with:', {
+      url: `${supabaseUrl}/rest/v1/reminders`,
+      hasAccessToken: !!accessToken,
+      reminderCount: reminders.length
+    });
+
+    const formattedReminders = reminders.map(reminder => ({
+      id: reminder.id,
+      title: reminder.title,
+      time: reminder.time,
+      date: reminder.date,
+      completed: reminder.completed || false,
+      user_id: reminder.user_id,
+      notification_id: reminder.notification_id, // Using the correct field name
+      synced_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
+
+    console.log('Formatted reminders:', JSON.stringify(formattedReminders, null, 2));
+
     const res = await fetch(`${supabaseUrl}/rest/v1/reminders`, {
       method: 'POST',
       headers: {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal,resolution=merge-duplicates',
+        'Prefer': 'return=representation,resolution=merge-duplicates',
       },
-      body: JSON.stringify(reminders.map(reminder => ({
-        id: reminder.id,
-        title: reminder.title,
-        time: reminder.time,
-        date: reminder.date,
-        completed: reminder.completed || false,
-        user_id: reminder.user_id,
-        notification_id: reminder.notificationId,
-        synced_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }))),
+      body: JSON.stringify(formattedReminders),
     });
 
     if (!res.ok) {

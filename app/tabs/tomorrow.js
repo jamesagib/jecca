@@ -140,12 +140,15 @@ export default function TomorrowScreen() {
         hours = 0;
       }
 
-      const targetTime = moment()
+      let targetTime = moment()
         .add(1, 'day')
         .hours(hours)
         .minutes(minutes)
         .seconds(0)
         .milliseconds(0);
+
+      console.log('Current time:', now.format('YYYY-MM-DD HH:mm:ss'));
+      console.log('Target time:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -217,7 +220,10 @@ export default function TomorrowScreen() {
 
   const saveTasks = async (tomorrowTasks) => {
     try {
-      const { user, accessToken } = useAuthStore.getState();
+      // Get auth data from storage
+      const authData = await storage.getAuthData();
+      const user = authData?.user;
+      const accessToken = authData?.accessToken;
       const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
       
       // If user is logged in, save to Supabase first
@@ -233,9 +239,31 @@ export default function TomorrowScreen() {
           }));
           
           // Save directly to Supabase
-          console.log('Saving to Supabase:', tasksWithUser);
-          const { error: upsertError, data } = await upsertReminders(tasksWithUser, accessToken);
+          const tasksToSave = tasksWithUser.map(task => ({
+            id: task.id,
+            title: task.title,
+            time: task.time,
+            date: task.date,
+            completed: task.completed || false,
+            user_id: user.id,
+            notification_id: task.notificationId,
+            synced_at: new Date().toISOString()
+          }));
+          
+          console.log('Current user:', { 
+            id: user.id, 
+            email: user.email,
+            accessToken: accessToken?.substring(0, 10) + '...' || 'missing'
+          });
+          console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
+          
+          const { error: upsertError, data } = await upsertReminders(tasksToSave, accessToken);
           console.log('Supabase response:', { data, error: upsertError });
+          
+          if (upsertError) {
+            console.error('Detailed error:', upsertError);
+            throw upsertError;
+          }
           if (upsertError) throw upsertError;
         } catch (syncError) {
           console.error('Error saving to Supabase:', syncError);

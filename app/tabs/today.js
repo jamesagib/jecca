@@ -135,16 +135,24 @@ export default function TodayScreen() {
 
       // Get the current date components
       const now = moment();
-      const targetTime = moment()
+      let targetTime = moment()
         .hours(hours)
         .minutes(minutes)
         .seconds(0)
         .milliseconds(0);
 
-      // If time has already passed today, don't schedule
+      console.log('Current time:', now.format('YYYY-MM-DD HH:mm:ss'));
+      console.log('Target time:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
+
+      // If time has already passed today, schedule for tomorrow
       if (targetTime.isBefore(now)) {
-        console.log('Time has already passed for today, not scheduling notification');
-        return null;
+        targetTime = moment()
+          .add(1, 'day')
+          .hours(hours)
+          .minutes(minutes)
+          .seconds(0)
+          .milliseconds(0);
+        console.log(`Time already passed, scheduling for tomorrow at ${targetTime.format('YYYY-MM-DD HH:mm:ss')}`);
       }
 
       // Schedule the notification with exact trigger time
@@ -192,7 +200,17 @@ export default function TodayScreen() {
 
   const saveTasks = async (todayTasks) => {
     try {
-      const { user, accessToken } = useAuthStore.getState();
+      // Get auth data from storage
+      const authData = await storage.getAuthData();
+      const user = authData?.user;
+      const accessToken = authData?.accessToken;
+      
+      console.log('Auth state:', { 
+        hasUser: !!user, 
+        userId: user?.id,
+        hasAccessToken: !!accessToken 
+      });
+      
       const today = moment().format('YYYY-MM-DD');
       
       // If user is logged in, save to Supabase first
@@ -202,15 +220,36 @@ export default function TodayScreen() {
           const tasksWithUser = todayTasks.map(task => ({
             ...task,
             user_id: user.id,
-            user_email: user.email,
             synced_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }));
           
           // Save directly to Supabase
-          console.log('Saving to Supabase:', tasksWithUser);
-          const { error: upsertError, data } = await upsertReminders(tasksWithUser, accessToken);
+          const tasksToSave = tasksWithUser.map(task => ({
+            id: task.id,
+            title: task.title,
+            time: task.time,
+            date: task.date,
+            completed: task.completed || false,
+            user_id: user.id,
+            notification_id: task.notificationId,
+            synced_at: new Date().toISOString()
+          }));
+          
+          console.log('Current user:', { 
+            id: user.id, 
+            email: user.email,
+            accessToken: accessToken.substring(0, 10) + '...'
+          });
+          console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
+          
+          const { error: upsertError, data } = await upsertReminders(tasksToSave, accessToken);
           console.log('Supabase response:', { data, error: upsertError });
+          
+          if (upsertError) {
+            console.error('Detailed error:', upsertError);
+            throw upsertError;
+          }
           if (upsertError) throw upsertError;
         } catch (syncError) {
           console.error('Error saving to Supabase:', syncError);
