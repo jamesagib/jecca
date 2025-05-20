@@ -174,13 +174,16 @@ export default function TodayScreen() {
       if (task?.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
-      const updatedTasks = tasks.filter(t => t.id !== id);
+      const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
       await saveTasks(updatedTasks);
+      await syncDeleteReminder(id);
     } else {
+      const isCompleted = !doneTasks.includes(id);
       setDoneTasks((prev) =>
-        prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+        isCompleted ? [...prev, id] : prev.filter(taskId => taskId !== id)
       );
+      await syncReminderStatus(id, isCompleted);
     }
   };
 
@@ -195,6 +198,7 @@ export default function TodayScreen() {
       const newTasks = [...otherDaysTasks, ...todayTasks];
       
       await storage.setItem(TASKS_KEY, JSON.stringify(newTasks));
+      await syncReminders(); // Sync with Supabase after local save
     } catch (error) {
       console.error('Error saving tasks:', error);
     }
@@ -203,12 +207,13 @@ export default function TodayScreen() {
   const handleSubmit = async () => {
     if (text.trim() === '') return;
     const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
-
+    
     const newTask = {
-      id: Date.now(),
+      id: Date.now().toString(),
       title: text.trim(),
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
+      completed: false,
     };
 
     const notificationId = await scheduleNotification(newTask);
@@ -216,30 +221,36 @@ export default function TodayScreen() {
       newTask.notificationId = notificationId;
     }
 
-    const updated = [...tasks, newTask];
-    setTasks(updated);
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
     setText('');
     setIsInputVisible(false);
-    await saveTasks(updated);
+    await saveTasks(updatedTasks);
   };
 
   const handleDelete = (id) => {
-    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "OK", onPress: () => deleteTask(id) },
-    ]);
-  };
-
-  const deleteTask = async (id) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    const task = tasks.find(t => t.id === id);
-    if (task?.notificationId) {
-      await Notifications.cancelScheduledNotificationAsync(task.notificationId);
-    }
-    const updated = tasks.filter(task => task.id !== id);
-    setTasks(updated);
-    await saveTasks(updated);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    Alert.alert(
+      "Delete Task",
+      "Are you sure you want to delete this task?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "OK",
+          onPress: async () => {
+            const task = tasks.find(t => t.id === id);
+            if (task?.notificationId) {
+              await Notifications.cancelScheduledNotificationAsync(task.notificationId);
+            }
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            const updatedTasks = tasks.filter(task => task.id !== id);
+            setTasks(updatedTasks);
+            await saveTasks(updatedTasks);
+            await syncDeleteReminder(id);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+          }
+        }
+      ]
+    );
   };
 
   const saveTimeForTask = async (taskId, time) => {

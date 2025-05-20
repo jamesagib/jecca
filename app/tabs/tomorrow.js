@@ -195,10 +195,13 @@ export default function TomorrowScreen() {
       const updatedTasks = tasks.filter(task => task.id !== id);
       setTasks(updatedTasks);
       await saveTasks(updatedTasks);
+      await syncDeleteReminder(id);
     } else {
+      const isCompleted = !doneTasks.includes(id);
       setDoneTasks((prev) =>
-        prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+        isCompleted ? [...prev, id] : prev.filter(taskId => taskId !== id)
       );
+      await syncReminderStatus(id, isCompleted);
     }
   };
 
@@ -213,6 +216,7 @@ export default function TomorrowScreen() {
       const newTasks = [...otherDaysTasks, ...tomorrowTasks];
       
       await storage.setItem(TASKS_KEY, JSON.stringify(newTasks));
+      await syncReminders(); // Sync with Supabase after local save
     } catch (error) {
       console.error('Error saving tasks:', error);
     }
@@ -227,6 +231,7 @@ export default function TomorrowScreen() {
       title: text.trim(),
       time: currentTime,
       date: moment().add(1, 'day').format('YYYY-MM-DD'),
+      completed: false,
     };
 
     const notificationId = await scheduleNotification(newTask);
@@ -259,6 +264,7 @@ export default function TomorrowScreen() {
             const updatedTasks = tasks.filter(task => task.id !== id);
             setTasks(updatedTasks);
             await saveTasks(updatedTasks);
+            await syncDeleteReminder(id);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
           }
         }

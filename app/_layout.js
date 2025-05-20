@@ -16,19 +16,33 @@ export default function RootLayout() {
   });
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const { initialize } = useAuthStore();
+  const { initialize, user } = useAuthStore();
 
   useEffect(() => {
     if (!fontsLoaded) return;
 
     async function prepare() {
       try {
-        // Initialize auth state
+        // Initialize auth state first
         await initialize();
-        // You may want to sync reminders here if user is signed in
-        syncReminders();
-        const status = await storage.getItem('onboardingComplete');
-        setIsOnboardingComplete(status === 'true');
+        
+        // Check onboarding status
+        const onboardingStatus = await storage.getItem('onboardingComplete');
+        const hasCompletedOnboarding = onboardingStatus === 'true';
+        
+        // If user exists but onboarding not marked complete, mark it complete
+        if (user && !hasCompletedOnboarding) {
+          await storage.setItem('onboardingComplete', 'true');
+          setIsOnboardingComplete(true);
+        } else {
+          setIsOnboardingComplete(hasCompletedOnboarding);
+        }
+
+        // Sync reminders if user is logged in
+        if (user) {
+          await syncReminders();
+        }
+
         setInitializing(false);
         await SplashScreen.hideAsync();
       } catch (e) {
@@ -40,7 +54,7 @@ export default function RootLayout() {
     }
 
     prepare();
-  }, [fontsLoaded]);
+  }, [fontsLoaded, user]);
 
   if (!fontsLoaded || initializing) {
     return null;
