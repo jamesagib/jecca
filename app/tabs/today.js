@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
 import { useAuthStore } from '../utils/auth';
+import { useThemeStore } from '../utils/theme';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders } from '../utils/supabaseApi';
 
@@ -26,6 +27,8 @@ const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
+  const { isDarkMode, getColors } = useThemeStore();
+  const colors = getColors();
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
@@ -364,120 +367,75 @@ export default function TodayScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <View style={styles.listContainer}>
-          <View style={styles.mainContent}>
-            <View style={styles.centerContainer}>
-              {getEmptyStateMessage() && !isInputVisible && (
-                <View style={styles.emptyStateContainer}>
-                  <Text style={styles.emptyStateText}>{getEmptyStateMessage()}</Text>
-                  <TouchableOpacity 
-                    style={styles.addTaskButton}
-                    onPress={() => {
-                      setIsInputVisible(true);
-                      setTimeout(() => inputRef.current?.focus(), 100);
-                    }}
-                  >
-                    <Text style={styles.addTaskButtonText}>add something to do...</Text>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>today</Text>
+          <TouchableOpacity onPress={() => router.push('/settings')}>
+            <Text style={[styles.settingsText, { color: colors.textSecondary }]}>settings</Text>
                   </TouchableOpacity>
                 </View>
-              )}
               
-              <View style={styles.taskListContainer}>
-                {tasks.map((item) => (
+        <View style={styles.content}>
+          {tasks.map((task, index) => {
+            const isCompleted = doneTasks.includes(task.id);
+            return (
                   <TouchableOpacity
-                    style={styles.reminderContainer}
-                    key={item.id}
-                    onPress={() => toggleTask(item.id)}
-                    onLongPress={() => handleDelete(item.id)}
-                  >
-                    <Text
+                key={task.id}
                       style={[
-                        styles.reminderName,
-                        { 
-                          color: isOverdue(item.time) ? "#FF0000" : 
-                                 doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                        }
-                      ]}
+                  styles.task,
+                  { backgroundColor: colors.cardBackground, borderColor: colors.border }
+                ]}
+                onPress={() => toggleTask(task.id)}
                     >
-                      {item.title}
-                    </Text>
-                    <View
-                      style={[
-                        styles.timeContainer,
+                <View style={styles.taskContent}>
+                  <Text style={[
+                    styles.taskText,
                         { 
-                          borderColor: isOverdue(item.time) ? "#FF0000" : 
-                                      doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                      color: colors.text,
+                      textDecorationLine: isCompleted ? 'line-through' : 'none',
+                      opacity: isCompleted ? 0.5 : 1
                         }
-                      ]}
-                    >
-                      <Text
-                        style={[
+                  ]}>
+                    {task.title}
+                  </Text>
+                  <Text style={[
                           styles.timeText,
                           { 
-                            color: isOverdue(item.time) ? "#FF0000" : 
-                                   doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
+                      color: colors.textSecondary,
+                      opacity: isCompleted ? 0.5 : 1
                           }
-                        ]}
-                      >
-                        {item.time}
+                  ]}>
+                    {task.time}
                       </Text>
                     </View>
                   </TouchableOpacity>
-                ))}
+            );
+          })}
               </View>
 
-              {(isInputVisible || tasks.length > 0) && (
-                <View style={styles.inputSection}>
-                  <View style={styles.newItemContainer}>
+        <View style={styles.inputContainer}>
                     <TextInput
-                      ref={inputRef}
-                      placeholderTextColor={"#CFCFCF"}
-                      placeholder='+ add item...'
-                      style={styles.addItemInput}
+            style={[
+              styles.input,
+              { 
+                backgroundColor: colors.inputBackground,
+                color: colors.text,
+                borderColor: colors.border
+              }
+            ]}
+            placeholder="add a reminder..."
+            placeholderTextColor={colors.textSecondary}
+            value={text}
                       onChangeText={setText}
                       onSubmitEditing={handleSubmit}
-                      value={text}
-                      autoCapitalize='none'
-                      onBlur={() => {
-                        if (text.trim() === '') {
-                          setIsInputVisible(false);
-                        }
-                      }}
-                    />
-                    <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
-                      <Text style={styles.timeText}>{selectedTime}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
+          />
         </View>
       </KeyboardAvoidingView>
-
-      <View style={styles.bottomBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
-            <Text
-              style={[styles.tabText, tab === 'today' && styles.selectedText]}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
     </SafeAreaView>
   );
 }
@@ -485,176 +443,61 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+  },
+  keyboardView: {
+    flex: 1,
   },
   header: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Platform.OS === 'web' ? 30 : 10,
-    height: Platform.OS === 'web' ? 80 : 100,
-    width: '100%',
-  },
-  dateText: {
-    fontSize: Platform.select({ web: 32, default: 25 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    textTransform: 'lowercase',
-  },
-  listContainer: {
-    flex: 1,
-    width: Platform.OS === 'web' ? '45%' : '97%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    position: 'relative',
-  },
-  reminderContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 10,
-    paddingHorizontal: 20,
-  },
-  reminderName: {
-    flex: 1,
-    fontSize: Platform.select({ web: 32, default: 25 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'left',
-    color: '#4A4A4A',
-    flexShrink: 1,
-    marginRight: 10,
-    textTransform: 'lowercase',
-  },
-  timeContainer: {
-    marginLeft: 5,
-    minWidth: Platform.select({ web: 80, default: 65 }),
-    height: Platform.select({ web: 32, default: 25 }),
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  timeText: {
-    fontSize: Platform.select({ web: 16, default: 14 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#CFCFCF',
-    textAlign: 'center',
-    lineHeight: Platform.select({ web: 24, default: 22 }),
-    padding: 1,
-    textTransform: 'lowercase',
-  },
-  newItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
+    alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
-  addItemInput: {
-    flex: 1,
-    fontSize: Platform.select({ web: 32, default: 25 }),
+  title: {
+    fontSize: 32,
     fontFamily: 'Nunito_800ExtraBold',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginRight: 10,
-    textTransform: 'lowercase',
   },
-  inputTimeContainer: {
-    marginLeft: 10,
-    minWidth: Platform.select({ web: 80, default: 65 }),
-    height: Platform.select({ web: 32, default: 25 }),
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: Platform.select({ web: 50, default: 30 }),
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    width: '100%',
-    paddingVertical: 10,
-    gap: 40,
-  },
-  tabText: {
-    fontSize: Platform.select({ web: 32, default: 25 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#ccc',
-    textTransform: 'lowercase',
-  },
-  selectedText: {
-    color: '#212121',
-    textTransform: 'lowercase',
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  mainContent: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  taskListContainer: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Platform.select({ web: 0, default: 10 }),
-    maxWidth: Platform.select({ web: '100%', default: 500 }),
-    alignSelf: 'center',
-  },
-  inputSection: {
-    width: '100%',
-    padding: 20,
-    alignItems: 'center',
-  },
-  addTaskButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 40,
-  },
-  addTaskButtonText: {
+  settingsText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    textTransform: 'lowercase',
   },
-  emptyStateText: {
-    fontSize: Platform.select({ web: 28, default: 21 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    textAlign: 'center',
-    marginBottom: 20,
-    textTransform: 'lowercase',
-  },
-  keyboardAvoidingView: {
+  content: {
     flex: 1,
-    width: '100%',
+    padding: 20,
+  },
+  task: {
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  taskContent: {
+    padding: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  taskText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    flex: 1,
+  },
+  timeText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginLeft: 10,
+  },
+  inputContainer: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
   },
 });

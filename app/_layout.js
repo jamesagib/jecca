@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, useColorScheme } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,6 +8,7 @@ import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
+import { useThemeStore } from './utils/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,7 +52,9 @@ export default function RootLayout() {
   });
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const { initialize, user } = useAuthStore();
+  const { initialize: initializeAuth, user } = useAuthStore();
+  const { initialize: initializeTheme } = useThemeStore();
+  const colorScheme = useColorScheme();
 
   useEffect(() => {
     if (!fontsLoaded) return;
@@ -60,9 +63,14 @@ export default function RootLayout() {
       try {
         console.log('Starting app initialization...');
         
-        // Initialize auth state first
+        // Initialize theme
+        console.log('Initializing theme...');
+        await initializeTheme();
+        console.log('Theme initialized');
+
+        // Initialize auth state
         console.log('Initializing auth...');
-        await initialize();
+        await initializeAuth();
         console.log('Auth initialized');
         
         // Check onboarding status
@@ -85,7 +93,7 @@ export default function RootLayout() {
         if (user) {
           console.log('User logged in, registering for push notifications...');
           try {
-            await registerForPushNotifications();
+          await registerForPushNotifications();
             console.log('Push notifications registered');
           } catch (error) {
             console.warn('Failed to register push notifications:', error);
@@ -104,8 +112,8 @@ export default function RootLayout() {
         console.error('Error during initialization:', e);
         // Only reset onboarding if there's a critical error
         if (!user) {
-          await storage.setItem('onboardingComplete', 'false');
-          setIsOnboardingComplete(false);
+        await storage.setItem('onboardingComplete', 'false');
+        setIsOnboardingComplete(false);
         }
         setInitializing(false);
         await SplashScreen.hideAsync();

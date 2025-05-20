@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+import { useThemeStore } from './utils/theme';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -15,6 +16,8 @@ export default function SettingsModal() {
   const snapPoints = useMemo(() => ['35%'], []);
   const [isEnabled, setIsEnabled] = useState(false);
   const { user, signOut } = useAuthStore();
+  const { isDarkMode, toggleTheme, getColors } = useThemeStore();
+  const colors = getColors();
 
   useEffect(() => {
     if (!user) {
@@ -83,36 +86,25 @@ export default function SettingsModal() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <BottomSheet
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        index={0}
-        style={{ flex: 1 }}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
-        handleStyle={styles.handleStyle}
-      >
-        <BottomSheetView style={styles.contentContainer}>
-          {user && (
-            <View style={styles.accountSection}>
-              <Text style={styles.emailText}>{user.email}</Text>
-              <TouchableOpacity 
-                style={styles.signOutButton} 
-                onPress={handleSignOut}
-              >
-                <Text style={styles.signOutButtonText}>Sign Out</Text>
-              </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: colors.modalBackground }]}>
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: colors.text }]}>settings</Text>
+        
+        <View style={[styles.section, { borderColor: colors.border }]}>
+          <View style={styles.settingRow}>
+            <Text style={[styles.settingText, { color: colors.text }]}>dark mode</Text>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.buttonBackground}
+            />
             </View>
-          )}
+            </View>
 
-          <View style={styles.settingContainer}>
-            <View style={styles.textContainer}>
-              <Text style={styles.settingName}>Remove reminder after completion</Text>
-            </View>
+        <View style={[styles.section, { borderColor: colors.border }]}>
+          <View style={styles.settingRow}>
+            <Text style={[styles.settingText, { color: colors.text }]}>Remove reminder after completion</Text>
             <Switch
               trackColor={{false: '#CFCFCF', true: '#53d769'}}
               thumbColor={isEnabled ? 'white' : 'white'}
@@ -121,9 +113,10 @@ export default function SettingsModal() {
               value={isEnabled}
             />
           </View>
+          </View>
           
           <TouchableOpacity 
-            style={styles.clearButton} 
+          style={[styles.clearButton, { backgroundColor: colors.buttonBackground }]} 
             onPress={() => {
               Alert.alert(
                 'Clear All Reminders',
@@ -136,16 +129,16 @@ export default function SettingsModal() {
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.closeButtonText}>Clear reminders</Text>
+          <Text style={[styles.closeButtonText, { color: colors.buttonText }]}>Clear reminders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => Linking.openURL('https://x.com/agibjames')}
+          style={[styles.signOutButton, { backgroundColor: colors.buttonBackground }]} 
+          onPress={handleSignOut}
           >
-            <Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text>
+          <Text style={[styles.signOutText, { color: colors.buttonText }]}>sign out</Text>
           </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
+      </View>
     </View>
   );
 }
@@ -153,45 +146,32 @@ export default function SettingsModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
   },
-  sheetBackground: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,  // Increased corner radius
-    borderTopRightRadius: 25, // Increased corner radius
-  },
-  handleStyle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-  },
-  handleIndicator: {
-    backgroundColor: '#CFCFCF',
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  content: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 12,
-    textAlign: 'center',
-    textTransform: 'lowercase',
+    fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginBottom: 20,
   },
-  subtitle: {
+  section: {
+    borderBottomWidth: 1,
+    paddingVertical: 15,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  settingText: {
     fontSize: 16,
-    color: '#ADADAD',
-    marginBottom: 24,
-    textTransform: 'lowercase',
+    fontFamily: 'Nunito_800ExtraBold',
   },
   clearButton: {
     marginTop: 10,
@@ -207,60 +187,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     textTransform: 'lowercase',
   },
-  settingContainer: {
-    flexDirection: 'row',
-    width: '95%',
-    justifyContent: 'space-between'
-  },
-  textContainer: {
-    width: '80%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  settingName: {
-    fontSize: 20,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    lineHeight: 22,
-    textTransform: 'lowercase',
-  },
-  madeWithLoveText: {
-    fontSize: 16,
-    color: '#212121',
-    textAlign: 'center',
-    fontFamily: 'Nunito_800ExtraBold',
-    marginTop: 8,  // Add a small top margin
-    textTransform: 'lowercase',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
-  accountSection: {
-    width: '100%',
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+  signOutButton: {
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  emailText: {
+  signOutText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    marginBottom: 10,
-    textTransform: 'lowercase',
   },
-  signOutButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-  },
-  signOutButtonText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#FF3B30',
-    textTransform: 'lowercase',
-  }
 });

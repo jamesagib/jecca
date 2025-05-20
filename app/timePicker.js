@@ -1,66 +1,41 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { TimePicker } from 'react-native-wheel-picker-expo';
 import { storage } from './utils/storage';
+import { useThemeStore } from './utils/theme';
 import moment from 'moment';
 
 const TIME_KEY = 'selected_time';
 
-export default function TimePicker() {
+export default function TimePickerScreen() {
   const router = useRouter();
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['50%'], []); 
-  const [time, setTime] = useState(() => {
-    const now = new Date();
-    now.setSeconds(0);
-    now.setMilliseconds(0);
-    return now;
-  });
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTime, setSelectedTime] = useState(moment().format('h:mm A'));
+  const { isDarkMode, getColors } = useThemeStore();
+  const colors = getColors();
 
   useEffect(() => {
     const loadInitialTime = async () => {
       try {
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
-          const parsedTime = moment(storedTime, 'h:mma');
-          if (parsedTime.isValid()) {
-            setTime(parsedTime.toDate());
-          }
+          setSelectedTime(moment(storedTime, 'h:mma').format('h:mm A'));
         }
       } catch (error) {
         console.error('Error loading time:', error);
-      } finally {
-        setIsLoading(false);
-        setIsOpen(true);
       }
     };
     loadInitialTime();
   }, []);
 
-  const handleSheetChanges = useCallback((index) => {
-    if (index === -1) {
-      router.back();
-    }
-  }, [router]);
+  const handleTimeChange = (newTime) => {
+    setSelectedTime(newTime);
+  };
 
-  const renderBackdrop = useCallback(props => (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      opacity={0.5}
-      pressBehavior="close"
-    />
-  ), []);
-
-  const saveAndClose = async (selectedTime) => {
+  const handleDone = async () => {
     try {
-      const formattedTime = moment(selectedTime).format('h:mma');
+      // Convert from "h:mm A" to "h:mma" format
+      const formattedTime = moment(selectedTime, 'h:mm A').format('h:mma');
       await storage.setItem(TIME_KEY, formattedTime);
       router.back();
     } catch (error) {
@@ -68,218 +43,118 @@ export default function TimePicker() {
     }
   };
 
-  const handleTimeChange = (event, selectedDate) => {
-    if (selectedDate) {
-      setTime(selectedDate);
-      if (Platform.OS === 'android') {
-        saveAndClose(selectedDate);
-      }
-    }
-  };
-
-  const handlePresetTime = async (presetTimeStr) => {
-    const parsedTime = moment(presetTimeStr, 'h:mma').toDate();
-    setTime(parsedTime);
-    await saveAndClose(parsedTime);
-  };
-
-  const WebTimePicker = () => {
-    const handleWebTimeChange = async (event) => {
-      const timeString = event.target.value;
-      if (timeString) {
-        const [hours, minutes] = timeString.split(':');
-        const date = moment().hours(parseInt(hours)).minutes(parseInt(minutes)).toDate();
-        setTime(date);
-        await saveAndClose(date);
-      }
-    };
-
-    return (
-      <input
-        type="time"
-        onChange={handleWebTimeChange}
-        value={moment(time).format('HH:mm')}
-        style={{
-          fontSize: '16px',
-          padding: '8px',
-          borderRadius: '8px',
-          border: '1px solid #CFCFCF',
-          backgroundColor: '#f5f5f5',
-          fontFamily: 'Nunito_800ExtraBold',
-          width: '120px',
-          marginBottom: '20px'
-        }}
-      />
-    );
-  };
-
   const presetTimes = [
-    '7:00am', '8:00am', '9:00am', '10:00am',
-    '11:00am', '12:00pm', '1:00pm', '2:00pm',
-    '3:00pm', '4:00pm', '5:00pm', '6:00pm',
-    '7:00pm', '8:00pm', '9:00pm', '10:00pm'
+    '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM',
+    '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM',
+    '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM',
+    '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'
   ];
 
-  if (isLoading) {
-    return null;
-  }
-
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={isOpen ? 0 : -1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        enablePanDownToClose={true}
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={styles.handleIndicator}
-        backgroundStyle={styles.sheetBackground}
-        handleStyle={styles.handleStyle}
-      >
-        <BottomSheetView style={styles.contentContainer}>
-          <View style={styles.presetWrapper}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.presetContainer}
-              contentContainerStyle={styles.presetContentContainer}
-            >
-              {presetTimes.map((timeStr) => (
-                <TouchableOpacity
-                  key={timeStr}
-                  style={[
-                    styles.presetButton,
-                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonSelected
-                  ]}
-                  onPress={() => handlePresetTime(timeStr)}
-                >
-                  <Text style={[
-                    styles.presetButtonText,
-                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonTextSelected
-                  ]}>
-                    {timeStr}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+    <View style={[styles.container, { backgroundColor: colors.modalBackground }]}>
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: colors.text }]}>pick a time</Text>
+        
+        <View style={[styles.pickerContainer, { backgroundColor: colors.surface }]}>
+          <TimePicker
+            value={selectedTime}
+            onChange={handleTimeChange}
+            textColor={colors.text}
+            textSize={20}
+            itemHeight={44}
+            selectedBackgroundColor={colors.primary + '20'}
+          />
+        </View>
 
-          <View style={styles.timePickerWrapper}>
-            {Platform.OS === 'web' ? (
-              <WebTimePicker />
-            ) : (
-              <DateTimePicker
-                testID="timePicker"
-                value={time}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleTimeChange}
-                style={styles.timePicker}
-              />
-            )}
-          </View>
-
-          {Platform.OS === 'ios' && (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.presetContainer}
+          contentContainerStyle={styles.presetContent}
+        >
+          {presetTimes.map((time) => (
             <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => saveAndClose(time)}
+              key={time}
+              style={[
+                styles.presetButton,
+                { 
+                  backgroundColor: selectedTime === time ? colors.primary : colors.surface,
+                  borderColor: colors.border
+                }
+              ]}
+              onPress={() => setSelectedTime(time)}
             >
-              <Text style={styles.confirmButtonText}>Set Time</Text>
+              <Text
+                style={[
+                  styles.presetText,
+                  { 
+                    color: selectedTime === time ? colors.buttonText : colors.text
+                  }
+                ]}
+              >
+                {time.toLowerCase()}
+              </Text>
             </TouchableOpacity>
-          )}
-        </BottomSheetView>
-      </BottomSheet>
-    </GestureHandlerRootView>
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: colors.buttonBackground }]}
+          onPress={handleDone}
+        >
+          <Text style={[styles.buttonText, { color: colors.buttonText }]}>done</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
-  sheetBackground: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+  content: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
   },
-  handleStyle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+  title: {
+    fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginBottom: 20,
   },
-  handleIndicator: {
-    backgroundColor: '#CFCFCF',
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  presetWrapper: {
-    marginTop: 8,
-    marginBottom: 16,
+  pickerContainer: {
+    borderRadius: 10,
+    marginVertical: 20,
+    padding: 20,
   },
   presetContainer: {
-    flexGrow: 0,
+    marginBottom: 20,
   },
-  presetContentContainer: {
-    paddingHorizontal: 4,
-    alignItems: 'center',
+  presetContent: {
+    paddingHorizontal: 10,
   },
   presetButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    minWidth: 80,
-    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    borderWidth: 1,
   },
-  presetButtonText: {
-    color: '#212121',
+  presetText: {
     fontSize: 14,
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
   },
-  presetButtonSelected: {
-    backgroundColor: '#212121',
-  },
-  presetButtonTextSelected: {
-    color: 'white',
-  },
-  timePickerWrapper: {
-    flex: 1,
-    justifyContent: 'center',
+  button: {
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  timePicker: {
-    width: Platform.OS === 'ios' ? '100%' : 'auto',
-    height: Platform.OS === 'ios' ? 200 : 'auto',
-  },
-  confirmButton: {
-    alignSelf: 'center',
-    backgroundColor: '#212121',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    width: '90%',
-    marginBottom: 20,
     marginTop: 20,
   },
-  confirmButtonText: {
-    color: 'white',
+  buttonText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
   },
 });
