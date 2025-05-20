@@ -18,6 +18,8 @@ import moment from 'moment';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
+import { useAuthStore } from '../utils/auth';
+import { scheduleNotificationWithSupabase } from '../utils/notifications';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -34,6 +36,7 @@ const TIME_KEY = 'selected_time';
 
 export default function TomorrowScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
@@ -104,31 +107,37 @@ export default function TomorrowScreen() {
     requestPermissions();
   }, []);
 
-  // Schedule notification for tomorrow's task
+  // Update scheduleNotification to use Supabase
   const scheduleNotification = async (task) => {
     try {
       if (task.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
 
+      // If user is logged in, use Supabase Edge Function
+      if (user) {
+        const result = await scheduleNotificationWithSupabase(task);
+        if (result) {
+          return result.id; // Use the Supabase notification ID
+        }
+      }
+
+      // Fallback to local notifications if not logged in or Supabase fails
       const timeStr = task.time.toLowerCase();
       const [time, period] = timeStr.match(/(\d+):?(\d*)\s*(am|pm)/i).slice(1);
       let hours = parseInt(time);
       let minutes = 0;
 
-      // Handle cases like "7:30am" vs "7am"
       if (timeStr.includes(':')) {
         minutes = parseInt(timeStr.split(':')[1].replace(/[^\d]/g, ''));
       }
 
-      // Adjust hours for PM
       if (period.toLowerCase() === 'pm' && hours !== 12) {
         hours += 12;
       } else if (period.toLowerCase() === 'am' && hours === 12) {
         hours = 0;
       }
 
-      // Set notification time for tomorrow
       const targetTime = moment()
         .add(1, 'day')
         .hours(hours)
@@ -136,11 +145,10 @@ export default function TomorrowScreen() {
         .seconds(0)
         .milliseconds(0);
 
-      // Schedule the notification with exact trigger time
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Reminder',
-          body: `${task.title}`,
+          body: task.title,
           sound: true,
           priority: 'max'
         },

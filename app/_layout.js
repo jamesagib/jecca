@@ -1,14 +1,49 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
+import { registerForPushNotifications } from './utils/notifications';
 
 SplashScreen.preventAutoHideAsync();
+
+function OnboardingLayout() {
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+      <Stack.Screen name="onboarding1" />
+      <Stack.Screen name="onboarding2" />
+      <Stack.Screen name="onboarding3" />
+      <Stack.Screen name="email-auth" />
+    </Stack>
+  );
+}
+
+function MainLayout() {
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="tabs" />
+      <Stack.Screen
+        name="settings"
+        options={{
+          presentation: 'transparentModal',
+          animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="timePicker"
+        options={{
+          presentation: 'transparentModal',
+          animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+        }}
+      />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -38,8 +73,9 @@ export default function RootLayout() {
           setIsOnboardingComplete(hasCompletedOnboarding);
         }
 
-        // Sync reminders if user is logged in
+        // Register for push notifications if user is logged in
         if (user) {
+          await registerForPushNotifications();
           await syncReminders();
         }
 
@@ -62,40 +98,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'none',
-          contentStyle: { backgroundColor: 'transparent' }
-        }}
-      >
-        {!isOnboardingComplete ? (
-          <>
-            <Stack.Screen name="onboarding1" />
-            <Stack.Screen name="onboarding2" />
-            <Stack.Screen name="onboarding3" />
-            <Stack.Screen name="email-auth" />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="tabs" />
-            <Stack.Screen
-              name="settings"
-              options={{
-                presentation: 'transparentModal',
-                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="timePicker"
-              options={{
-                presentation: 'transparentModal',
-                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-              }}
-            />
-          </>
-        )}
-      </Stack>
+      {isOnboardingComplete ? <MainLayout /> : <OnboardingLayout />}
     </GestureHandlerRootView>
   );
 }

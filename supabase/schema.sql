@@ -78,3 +78,29 @@ create trigger handle_reminders_updated_at
     before update on public.reminders
     for each row
     execute function public.handle_updated_at();
+
+-- Create push_tokens table
+create table public.push_tokens (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade not null,
+    push_token text not null,
+    device_id text,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now(),
+    unique(user_id, push_token)
+);
+
+-- Enable RLS
+alter table public.push_tokens enable row level security;
+
+-- Create policy to allow users to manage their own push tokens
+create policy "Users can manage their own push tokens"
+on public.push_tokens
+for all
+using (auth.uid() = user_id);
+
+-- Create updated_at trigger for push_tokens
+create trigger handle_push_tokens_updated_at
+    before update on public.push_tokens
+    for each row
+    execute function public.handle_updated_at();
