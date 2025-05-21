@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import { useThemeStore, getColors } from './utils/theme';
+import { useThemeStore } from './utils/theme';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -16,8 +16,7 @@ export default function SettingsModal() {
   const snapPoints = useMemo(() => ['35%'], []);
   const [isEnabled, setIsEnabled] = useState(false);
   const { user, signOut } = useAuthStore();
-  const { isDarkMode, toggleTheme } = useThemeStore();
-  const colors = getColors(isDarkMode);
+  const { colors } = useThemeStore();
 
   useEffect(() => {
     if (!user) {
@@ -92,18 +91,6 @@ export default function SettingsModal() {
         
         <View style={[styles.section, { borderColor: colors.border }]}>
           <View style={styles.settingRow}>
-            <Text style={[styles.settingText, { color: colors.text }]}>dark mode</Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.buttonBackground}
-            />
-            </View>
-            </View>
-
-        <View style={[styles.section, { borderColor: colors.border }]}>
-          <View style={styles.settingRow}>
             <Text style={[styles.settingText, { color: colors.text }]}>Remove reminder after completion</Text>
             <Switch
               trackColor={{false: '#CFCFCF', true: '#53d769'}}
@@ -113,31 +100,31 @@ export default function SettingsModal() {
               value={isEnabled}
             />
           </View>
-          </View>
+        </View>
           
-          <TouchableOpacity 
+        <TouchableOpacity 
           style={[styles.clearButton, { backgroundColor: colors.buttonBackground }]} 
-            onPress={() => {
-              Alert.alert(
-                'Clear All Reminders',
-                'Are you sure you want to clear all reminders?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'OK', onPress: clearAllReminders },
-                ]
-              );
-            }}
-            activeOpacity={0.7}
-          >
+          onPress={() => {
+            Alert.alert(
+              'Clear All Reminders',
+              'Are you sure you want to clear all reminders?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'OK', onPress: clearAllReminders },
+              ]
+            );
+          }}
+          activeOpacity={0.7}
+        >
           <Text style={[styles.closeButtonText, { color: colors.buttonText }]}>Clear reminders</Text>
-          </TouchableOpacity>
+        </TouchableOpacity>
 
-          <TouchableOpacity 
+        <TouchableOpacity 
           style={[styles.signOutButton, { backgroundColor: colors.buttonBackground }]} 
           onPress={handleSignOut}
-          >
+        >
           <Text style={[styles.signOutText, { color: colors.buttonText }]}>sign out</Text>
-          </TouchableOpacity>
+        </TouchableOpacity>
       </View>
     </View>
   );

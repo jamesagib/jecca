@@ -40,7 +40,7 @@ const TIME_KEY = 'selected_time';
 export default function TomorrowScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { isDarkMode, colors } = useThemeStore();
+  const { colors } = useThemeStore();
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
@@ -374,7 +374,7 @@ export default function TomorrowScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
