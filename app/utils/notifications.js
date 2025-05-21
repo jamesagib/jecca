@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { savePushToken, deletePushToken, scheduleReminder } from './supabaseApi';
 import { useAuthStore } from './auth';
 
@@ -17,32 +18,68 @@ export async function registerForPushNotifications() {
   let token;
 
   if (Platform.OS === 'web') {
+    console.log('Push notifications not supported on web');
     return null;
   }
 
   try {
+    // Check if device is a real device
+    if (!Device.isDevice) {
+      console.log('Must use physical device for Push Notifications');
+      return null;
+    }
+
     // Check if we have permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
     // If we don't have permission, ask for it
     if (existingStatus !== 'granted') {
+      console.log('Requesting push notification permission...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
     if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
       return null;
     }
 
-    // Get the token
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: '0be2e439-23c0-41fb-9351-824b644439c0',
-    })).data;
+    // Get the project ID from app config
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      console.error('Project ID not found in app config');
+      return null;
+    }
+
+    console.log('Getting push token with project ID:', projectId);
+    
+    // Get the token with retry logic
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const response = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+        token = response.data;
+        break;
+      } catch (error) {
+        console.warn(`Attempt ${retryCount + 1} failed to get push token:`, error);
+        retryCount++;
+        if (retryCount === maxRetries) {
+          throw error;
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
 
     // Store the token in Supabase if user is logged in
     const { user, accessToken } = useAuthStore.getState();
-    if (user && accessToken) {
+    if (user && accessToken && token) {
+      console.log('Saving push token to Supabase...');
       await savePushToken(
         user.id,
         token,

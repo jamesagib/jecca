@@ -63,12 +63,7 @@ export default function RootLayout() {
       try {
         console.log('Starting app initialization...');
         
-        // Initialize theme
-        console.log('Initializing theme...');
-        await initializeTheme();
-        console.log('Theme initialized');
-
-        // Initialize auth state
+        // Initialize auth state first
         console.log('Initializing auth...');
         await initializeAuth();
         console.log('Auth initialized');
@@ -79,22 +74,16 @@ export default function RootLayout() {
         const hasCompletedOnboarding = onboardingStatus === 'true';
         console.log('Onboarding status:', hasCompletedOnboarding);
         
-        // Only update onboarding status if user exists and onboarding not complete
-        if (user && !hasCompletedOnboarding) {
-          console.log('User exists but onboarding not complete, marking complete...');
-          await storage.setItem('onboardingComplete', 'true');
-          setIsOnboardingComplete(true);
-        } else {
-          // Keep existing onboarding status
-          setIsOnboardingComplete(hasCompletedOnboarding);
-        }
+        setIsOnboardingComplete(hasCompletedOnboarding);
 
         // Register for push notifications if user is logged in
         if (user) {
           console.log('User logged in, registering for push notifications...');
           try {
-          await registerForPushNotifications();
-            console.log('Push notifications registered');
+            // Add a small delay to ensure network is ready
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await registerForPushNotifications();
+            console.log('Push notifications registered successfully');
           } catch (error) {
             console.warn('Failed to register push notifications:', error);
             // Continue even if push notifications fail
@@ -112,8 +101,8 @@ export default function RootLayout() {
         console.error('Error during initialization:', e);
         // Only reset onboarding if there's a critical error
         if (!user) {
-        await storage.setItem('onboardingComplete', 'false');
-        setIsOnboardingComplete(false);
+          await storage.setItem('onboardingComplete', 'false');
+          setIsOnboardingComplete(false);
         }
         setInitializing(false);
         await SplashScreen.hideAsync();
@@ -129,15 +118,30 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {!user && isOnboardingComplete ? (
-        <View style={{ flex: 1 }}>
-          <OnboardingLayout />
-        </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          {isOnboardingComplete ? <MainLayout /> : <OnboardingLayout />}
-        </View>
-      )}
+      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
+        {!user && isOnboardingComplete ? (
+          <Stack.Screen name="onboarding1" />
+        ) : (
+          <>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="tabs" />
+            <Stack.Screen
+              name="settings"
+              options={{
+                presentation: 'transparentModal',
+                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="timePicker"
+              options={{
+                presentation: 'transparentModal',
+                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+              }}
+            />
+          </>
+        )}
+      </Stack>
     </GestureHandlerRootView>
   );
 }

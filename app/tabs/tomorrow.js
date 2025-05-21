@@ -384,63 +384,82 @@ export default function TomorrowScreen() {
           <Text style={[styles.title, { color: colors.text }]}>tomorrow</Text>
           <TouchableOpacity onPress={() => router.push('/settings')}>
             <Text style={[styles.settingsText, { color: colors.textSecondary }]}>settings</Text>
-                  </TouchableOpacity>
-                </View>
-              
+          </TouchableOpacity>
+        </View>
+        
         <View style={styles.content}>
           {tasks.map((task, index) => {
             const isCompleted = doneTasks.includes(task.id);
             return (
-                  <TouchableOpacity
+              <TouchableOpacity
                 key={task.id}
-                      style={[
+                style={[
                   styles.task,
                   { backgroundColor: colors.cardBackground, borderColor: colors.border }
                 ]}
                 onPress={() => toggleTask(task.id)}
-                    >
+              >
                 <View style={styles.taskContent}>
                   <Text style={[
                     styles.taskText,
-                        { 
+                    { 
                       color: colors.text,
                       textDecorationLine: isCompleted ? 'line-through' : 'none',
                       opacity: isCompleted ? 0.5 : 1
-                        }
+                    }
                   ]}>
                     {task.title}
                   </Text>
                   <Text style={[
-                          styles.timeText,
-                          { 
+                    styles.timeText,
+                    { 
                       color: colors.textSecondary,
                       opacity: isCompleted ? 0.5 : 1
-                          }
+                    }
                   ]}>
                     {task.time}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                  </Text>
+                </View>
+              </TouchableOpacity>
             );
           })}
-              </View>
+        </View>
 
         <View style={styles.inputContainer}>
-                    <TextInput
-            style={[
-              styles.input,
-              { 
-                backgroundColor: colors.inputBackground,
-                color: colors.text,
-                borderColor: colors.border
-              }
-            ]}
-            placeholder="add a reminder..."
-            placeholderTextColor={colors.textSecondary}
-            value={text}
-                      onChangeText={setText}
-                      onSubmitEditing={handleSubmit}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[
+                styles.input,
+                { 
+                  backgroundColor: colors.inputBackground,
+                  color: colors.text,
+                  borderColor: colors.border,
+                  flex: 0.7,
+                  marginRight: 10
+                }
+              ]}
+              placeholder="add a reminder..."
+              placeholderTextColor={colors.textSecondary}
+              value={text}
+              onChangeText={setText}
+              onSubmitEditing={handleSubmit}
+            />
+            <TouchableOpacity
+              style={[
+                styles.timePickerButton,
+                { 
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  flex: 0.3
+                }
+              ]}
+              onPress={() => router.push('/timePicker')}
+            >
+              <Text style={[styles.timePickerText, { color: colors.text }]}>
+                {selectedTime}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -499,12 +518,27 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 30 : 20,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
     height: 50,
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 15,
     fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+  },
+  timePickerButton: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timePickerText: {
+    fontSize: 14,
     fontFamily: 'Nunito_800ExtraBold',
   },
 });
