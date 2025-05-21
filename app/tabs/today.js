@@ -379,51 +379,51 @@ export default function TodayScreen() {
         </View>
         
         <View style={styles.content}>
-          {tasks.map((task, index) => {
-            const isCompleted = doneTasks.includes(task.id);
-            return (
-              <TouchableOpacity
-                key={task.id}
-                style={styles.task}
-                onPress={() => toggleTask(task.id)}
-                onLongPress={() => handleDelete(task.id)}
-              >
-                <Text style={[
-                  styles.taskText,
-                  { 
-                    color: isCompleted ? colors.textSecondary : colors.text,
-                  }
-                ]}>
-                  {task.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.inputWrapper}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[
-                styles.input,
-                { 
-                  color: colors.text,
-                }
-              ]}
-              placeholder="+ add item..."
-              placeholderTextColor={colors.textSecondary}
-              value={text}
-              onChangeText={setText}
-              onSubmitEditing={handleSubmit}
-            />
-            <TouchableOpacity
-              style={styles.timePickerButton}
-              onPress={() => router.push('/timePicker')}
-            >
-              <Text style={[styles.timeText, { color: colors.text }]}>
-                {selectedTime}
-              </Text>
-            </TouchableOpacity>
+          <View style={styles.taskListContainer}>
+            {tasks.map((task, index) => {
+              const isCompleted = doneTasks.includes(task.id);
+              return (
+                <TouchableOpacity
+                  key={task.id}
+                  style={styles.task}
+                  onPress={() => toggleTask(task.id)}
+                  onLongPress={() => handleDelete(task.id)}
+                >
+                  <View style={styles.taskTextContainer}>
+                    <Text style={[styles.taskText, { color: '#CFCFCF' }]}>
+                      {task.title}
+                    </Text>
+                    <View style={styles.timeContainer}>
+                      <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
+                        {task.time}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            
+            {/* Add Item as part of the list */}
+            <View style={styles.task}>
+              <View style={styles.taskInputContainer}>
+                <TextInput
+                  style={[styles.taskText, { color: '#CFCFCF' }]}
+                  placeholder="+ add item..."
+                  placeholderTextColor="#CFCFCF"
+                  value={text}
+                  onChangeText={setText}
+                  onSubmitEditing={handleSubmit}
+                />
+                <TouchableOpacity 
+                  style={styles.timeContainer}
+                  onPress={() => router.push('/timePicker')}
+                >
+                  <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
+                    {selectedTime}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -463,18 +463,47 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  taskListContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   task: {
+    width: '100%',
     paddingVertical: 10,
     alignItems: 'center',
-    width: '100%',
+  },
+  taskTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   taskText: {
     fontSize: 22,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
+  },
+  timeContainer: {
+    borderWidth: 1,
+    borderColor: '#CFCFCF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  timeText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
+  },
+  taskInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   inputWrapper: {
     paddingHorizontal: 20,
@@ -498,10 +527,6 @@ const styles = StyleSheet.create({
   },
   timePickerButton: {
     paddingLeft: 15,
-  },
-  timeText: {
-    fontSize: 18,
-    fontFamily: 'Nunito_800ExtraBold',
   },
   tabBar: {
     flexDirection: 'row',

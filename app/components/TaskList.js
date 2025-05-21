@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, Pressable } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { format } from 'date-fns';
 
 export const TaskList = ({ todayTasks = [], tomorrowTasks = [] }) => {
@@ -13,42 +13,41 @@ export const TaskList = ({ todayTasks = [], tomorrowTasks = [] }) => {
     <View style={styles.container}>
       <Text style={styles.dateHeader}>{dateString}</Text>
 
-      <View style={styles.content}>
-        <View style={styles.taskList}>
-          {tasks.map((task, index) => (
-            <View key={index} style={styles.taskRow}>
-              <Text style={styles.taskText}>{task.title}</Text>
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>
-                  {format(new Date(task.date), 'h:mmaaa')}
-                </Text>
-              </View>
-            </View>
-          ))}
-          {tasks.length === 0 && (
-            <Text style={styles.emptyState}>
-              {showTomorrow ? "You're all set for tomorrow!" : "No tasks for today!"}
+      {/* Tasks */}
+      {tasks.map((task, index) => (
+        <View key={index} style={styles.taskRow}>
+          <Text style={styles.taskText}>{task.title}</Text>
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeText}>
+              {format(new Date(task.date), 'h:mmaaa')}
             </Text>
-          )}
-        </View>
-
-        <View style={styles.addItemContainer}>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="+ add item..."
-              placeholderTextColor="#999"
-              value={newTaskText}
-              onChangeText={setNewTaskText}
-            />
-            <TouchableOpacity style={styles.timePickerButton}>
-              <Text style={styles.timeText}>2:00pm</Text>
-            </TouchableOpacity>
           </View>
-          <View style={styles.inputUnderline} />
         </View>
+      ))}
+      {tasks.length === 0 && (
+        <Text style={styles.emptyState}>
+          {showTomorrow ? "You're all set for tomorrow!" : "No tasks for today!"}
+        </Text>
+      )}
+
+      {/* Add Item Input */}
+      <View style={styles.addItemContainer}>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="+ add item..."
+            placeholderTextColor="#999"
+            value={newTaskText}
+            onChangeText={setNewTaskText}
+          />
+          <TouchableOpacity style={styles.timePickerButton}>
+            <Text style={styles.timeText}>2:00pm</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputUnderline} />
       </View>
 
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.footerTab, !showTomorrow && styles.activeFooterTab]} 
@@ -76,20 +75,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingTop: 20,
+    paddingHorizontal: 20,
   },
   dateHeader: {
     fontSize: 24,
     color: '#000',
-    paddingHorizontal: 20,
     marginBottom: 30,
     fontWeight: '400',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  taskList: {
-    marginBottom: 20,
   },
   taskRow: {
     flexDirection: 'row',
@@ -118,9 +110,11 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 18,
     marginTop: 20,
+    marginBottom: 20,
   },
   addItemContainer: {
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 'auto',
   },
   inputRow: {
     flexDirection: 'row',
@@ -130,7 +124,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 22,
     color: '#000',
     paddingVertical: 8,
   },
