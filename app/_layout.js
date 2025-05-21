@@ -63,33 +63,24 @@ export default function RootLayout() {
       try {
         console.log('Starting app initialization...');
         
-        // Initialize auth state first
-        console.log('Initializing auth...');
         await initializeAuth();
         console.log('Auth initialized');
         
-        // Check onboarding status
-        console.log('Checking onboarding status...');
         const onboardingStatus = await storage.getItem('onboardingComplete');
         const hasCompletedOnboarding = onboardingStatus === 'true';
         console.log('Onboarding status:', hasCompletedOnboarding);
         
         setIsOnboardingComplete(hasCompletedOnboarding);
 
-        // Register for push notifications if user is logged in
         if (user) {
-          console.log('User logged in, registering for push notifications...');
           try {
-            // Add a small delay to ensure network is ready
             await new Promise(resolve => setTimeout(resolve, 1000));
             await registerForPushNotifications();
             console.log('Push notifications registered successfully');
           } catch (error) {
             console.warn('Failed to register push notifications:', error);
-            // Continue even if push notifications fail
           }
           
-          console.log('Syncing reminders...');
           await syncReminders();
           console.log('Reminders synced');
         }
@@ -99,7 +90,6 @@ export default function RootLayout() {
         await SplashScreen.hideAsync();
       } catch (e) {
         console.error('Error during initialization:', e);
-        // Only reset onboarding if there's a critical error
         if (!user) {
           await storage.setItem('onboardingComplete', 'false');
           setIsOnboardingComplete(false);
@@ -118,30 +108,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'none' }}>
-        {!user && isOnboardingComplete ? (
-          <Stack.Screen name="onboarding1" />
-        ) : (
-          <>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="tabs" />
-            <Stack.Screen
-              name="settings"
-              options={{
-                presentation: 'transparentModal',
-                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="timePicker"
-              options={{
-                presentation: 'transparentModal',
-                animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
-              }}
-            />
-          </>
-        )}
-      </Stack>
+      {!user && isOnboardingComplete ? (
+        <OnboardingLayout />
+      ) : (
+        <MainLayout />
+      )}
     </GestureHandlerRootView>
   );
 }

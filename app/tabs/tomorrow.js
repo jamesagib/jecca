@@ -40,8 +40,7 @@ const TIME_KEY = 'selected_time';
 export default function TomorrowScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { isDarkMode, getColors } = useThemeStore();
-  const colors = getColors();
+  const { isDarkMode, colors } = useThemeStore();
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
@@ -368,7 +367,7 @@ export default function TomorrowScreen() {
       return "tomorrow's looking pretty chill! \nmaybe add something? 🌴";
     }
     if (tasks.every(task => doneTasks.includes(task.id))) {
-      return "planning ahead like a boss! \nall set for tomorrow! 🚀";
+      return "planning ahead like a boss! \nall set for tomorrow! ��";
     }
     return null;
   };

@@ -36,25 +36,39 @@ export const colors = {
   }
 };
 
-export const useThemeStore = create((set) => ({
+// Create a store slice for theme
+const createThemeSlice = (set, get) => ({
   isDarkMode: false,
+  colors: colors.light,
   initialize: async () => {
     try {
       const savedTheme = await storage.getItem('isDarkMode');
-      set({ isDarkMode: savedTheme === 'true' });
+      const isDarkMode = savedTheme === 'true';
+      set({ 
+        isDarkMode,
+        colors: colors[isDarkMode ? 'dark' : 'light']
+      });
     } catch (error) {
       console.error('Error loading theme:', error);
+      // Default to light theme if there's an error
+      set({ 
+        isDarkMode: false,
+        colors: colors.light
+      });
     }
   },
   toggleTheme: async () => {
     set((state) => {
       const newIsDarkMode = !state.isDarkMode;
       storage.setItem('isDarkMode', String(newIsDarkMode));
-      return { isDarkMode: newIsDarkMode };
+      return { 
+        isDarkMode: newIsDarkMode,
+        colors: colors[newIsDarkMode ? 'dark' : 'light']
+      };
     });
   },
-  getColors: () => {
-    const state = useThemeStore.getState();
-    return colors[state.isDarkMode ? 'dark' : 'light'];
-  }
-})); 
+  getColors: () => get().colors
+});
+
+// Create the store
+export const useThemeStore = create(createThemeSlice); 

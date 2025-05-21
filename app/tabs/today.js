@@ -27,8 +27,7 @@ const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
-  const { isDarkMode, getColors } = useThemeStore();
-  const colors = getColors();
+  const { isDarkMode, colors } = useThemeStore();
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);

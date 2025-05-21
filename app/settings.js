@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import { useThemeStore } from './utils/theme';
+import { useThemeStore, getColors } from './utils/theme';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TASKS_KEY = 'tasks';
@@ -16,8 +16,8 @@ export default function SettingsModal() {
   const snapPoints = useMemo(() => ['35%'], []);
   const [isEnabled, setIsEnabled] = useState(false);
   const { user, signOut } = useAuthStore();
-  const { isDarkMode, toggleTheme, getColors } = useThemeStore();
-  const colors = getColors();
+  const { isDarkMode, toggleTheme } = useThemeStore();
+  const colors = getColors(isDarkMode);
 
   useEffect(() => {
     if (!user) {
