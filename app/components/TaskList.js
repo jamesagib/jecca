@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Pressable } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, Pressable } from 'react-native';
 import { format } from 'date-fns';
 
 export const TaskList = ({ todayTasks = [], tomorrowTasks = [] }) => {
   const [showTomorrow, setShowTomorrow] = useState(false);
+  const [newTaskText, setNewTaskText] = useState('');
   const tasks = showTomorrow ? tomorrowTasks : todayTasks;
   
   const dateString = format(new Date(), 'EEE. MMM d').toLowerCase();
@@ -12,28 +13,40 @@ export const TaskList = ({ todayTasks = [], tomorrowTasks = [] }) => {
     <View style={styles.container}>
       <Text style={styles.dateHeader}>{dateString}</Text>
 
-      <View style={styles.taskList}>
-        {tasks.map((task, index) => (
-          <View key={index} style={styles.taskRow}>
-            <Text style={styles.taskText}>{task.title}</Text>
-            <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>
-                {format(new Date(task.date), 'h:mmaaa')}
-              </Text>
+      <View style={styles.content}>
+        <View style={styles.taskList}>
+          {tasks.map((task, index) => (
+            <View key={index} style={styles.taskRow}>
+              <Text style={styles.taskText}>{task.title}</Text>
+              <View style={styles.timeContainer}>
+                <Text style={styles.timeText}>
+                  {format(new Date(task.date), 'h:mmaaa')}
+                </Text>
+              </View>
             </View>
+          ))}
+          {tasks.length === 0 && (
+            <Text style={styles.emptyState}>
+              {showTomorrow ? "You're all set for tomorrow!" : "No tasks for today!"}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.addItemContainer}>
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="+ add item..."
+              placeholderTextColor="#999"
+              value={newTaskText}
+              onChangeText={setNewTaskText}
+            />
+            <TouchableOpacity style={styles.timePickerButton}>
+              <Text style={styles.timeText}>2:00pm</Text>
+            </TouchableOpacity>
           </View>
-        ))}
-        {tasks.length === 0 && (
-          <Text style={styles.emptyState}>
-            {showTomorrow ? "You're all set for tomorrow!" : "No tasks for today!"}
-          </Text>
-        )}
-        <Pressable style={styles.addItemRow}>
-          <Text style={styles.addItemText}>+ add item...</Text>
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>2:00pm</Text>
-          </View>
-        </Pressable>
+          <View style={styles.inputUnderline} />
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -71,9 +84,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     fontWeight: '400',
   },
-  taskList: {
+  content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  taskList: {
+    marginBottom: 20,
   },
   taskRow: {
     flexDirection: 'row',
@@ -82,7 +98,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   taskText: {
-    fontSize: 18,
+    fontSize: 22,
     color: '#999',
     flex: 1,
   },
@@ -103,16 +119,33 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 20,
   },
-  addItemRow: {
+  addItemContainer: {
+    marginBottom: 20,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10,
+    paddingVertical: 10,
   },
-  addItemText: {
-    fontSize: 18,
-    color: '#999',
+  input: {
     flex: 1,
+    fontSize: 18,
+    color: '#000',
+    paddingVertical: 8,
+  },
+  timePickerButton: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 15,
+    marginLeft: 10,
+  },
+  inputUnderline: {
+    height: 1,
+    backgroundColor: '#000',
+    width: '100%',
+    marginTop: 4,
   },
   footer: {
     flexDirection: 'row',

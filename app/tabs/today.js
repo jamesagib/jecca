@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   taskText: {
-    fontSize: 18,
+    fontSize: 22,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
   },
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   tabText: {
-    fontSize: 18,
+    fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
   },
 });
