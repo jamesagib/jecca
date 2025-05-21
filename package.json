@@ -22,6 +22,7 @@
     "abort-controller": "^3.0.0",
     "assert": "^2.1.0",
     "crypto-browserify": "^3.12.1",
+    "date-fns": "^4.1.0",
     "event-target-polyfill": "^0.0.4",
     "expo": "~53.0.8",
     "expo-auth-session": "~6.1.5",
@@ -61,7 +62,7 @@
     "text-encoding": "^0.7.0",
     "url": "^0.11.4",
     "web-streams-polyfill": "^2.1.1",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

@@ -380,10 +380,9 @@ export default function TomorrowScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>tomorrow</Text>
-          <TouchableOpacity onPress={() => router.push('/settings')}>
-            <Text style={[styles.settingsText, { color: colors.textSecondary }]}>settings</Text>
-          </TouchableOpacity>
+          <Text style={[styles.dateText, { color: colors.text }]}>
+            {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
+          </Text>
         </View>
         
         <View style={styles.content}>
@@ -392,73 +391,59 @@ export default function TomorrowScreen() {
             return (
               <TouchableOpacity
                 key={task.id}
-                style={[
-                  styles.task,
-                  { backgroundColor: colors.cardBackground, borderColor: colors.border }
-                ]}
+                style={styles.task}
                 onPress={() => toggleTask(task.id)}
+                onLongPress={() => handleDelete(task.id)}
               >
-                <View style={styles.taskContent}>
-                  <Text style={[
-                    styles.taskText,
-                    { 
-                      color: colors.text,
-                      textDecorationLine: isCompleted ? 'line-through' : 'none',
-                      opacity: isCompleted ? 0.5 : 1
-                    }
-                  ]}>
-                    {task.title}
-                  </Text>
-                  <Text style={[
-                    styles.timeText,
-                    { 
-                      color: colors.textSecondary,
-                      opacity: isCompleted ? 0.5 : 1
-                    }
-                  ]}>
-                    {task.time}
-                  </Text>
-                </View>
+                <Text style={[
+                  styles.taskText,
+                  { 
+                    color: isCompleted ? colors.textSecondary : colors.text,
+                  }
+                ]}>
+                  {task.title}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
+        <View style={styles.inputWrapper}>
+          <View style={styles.inputContainer}>
             <TextInput
               style={[
                 styles.input,
                 { 
-                  backgroundColor: colors.inputBackground,
                   color: colors.text,
-                  borderColor: colors.border,
-                  flex: 0.7,
-                  marginRight: 10
                 }
               ]}
-              placeholder="add a reminder..."
+              placeholder="+ add item..."
               placeholderTextColor={colors.textSecondary}
               value={text}
               onChangeText={setText}
               onSubmitEditing={handleSubmit}
             />
             <TouchableOpacity
-              style={[
-                styles.timePickerButton,
-                { 
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  flex: 0.3
-                }
-              ]}
+              style={styles.timePickerButton}
               onPress={() => router.push('/timePicker')}
             >
-              <Text style={[styles.timePickerText, { color: colors.text }]}>
+              <Text style={[styles.timeText, { color: colors.text }]}>
                 {selectedTime}
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.tabBar}>
+          <TouchableOpacity 
+            style={styles.tab}
+            onPress={() => router.push('/tabs/today')}
+          >
+            <Text style={[styles.tabText, { color: colors.textSecondary }]}>today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tab}>
+            <Text style={[styles.tabText, { color: colors.text }]}>tomorrow</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -473,71 +458,69 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 10,
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 32,
+  dateText: {
+    fontSize: 24,
     fontFamily: 'Nunito_800ExtraBold',
-  },
-  settingsText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
   },
   content: {
     flex: 1,
     padding: 20,
+    alignItems: 'center',
   },
   task: {
-    borderRadius: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  taskContent: {
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingVertical: 10,
     alignItems: 'center',
+    width: '100%',
   },
   taskText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
-    flex: 1,
+    textAlign: 'center',
   },
-  timeText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
-    marginLeft: 10,
+  inputWrapper: {
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputContainer: {
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-  },
-  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 400,
+    paddingBottom: 10,
   },
   input: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
+    paddingVertical: 10,
+    flex: 1,
+    textAlign: 'center',
   },
   timePickerButton: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingLeft: 15,
   },
-  timePickerText: {
-    fontSize: 14,
+  timeText: {
+    fontSize: 18,
+    fontFamily: 'Nunito_800ExtraBold',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    justifyContent: 'center',
+  },
+  tab: {
+    marginHorizontal: 10,
+  },
+  tabText: {
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
   },
 });
