@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useThemeStore } from '../utils/theme';
+import { useState, useEffect } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import { storage } from '../utils/storage';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const TIME_KEY = 'selected_time';
 
 const generateHours = () => {
   return Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -34,18 +37,36 @@ const getCurrentTime = () => {
   };
 };
 
-export default function Page() {
+export default function TimePickerScreen() {
   const router = useRouter();
-  const { colors } = useThemeStore();
-  
-  const currentTime = getCurrentTime();
-  const [selectedHour, setSelectedHour] = React.useState(currentTime.hours);
-  const [selectedMinute, setSelectedMinute] = React.useState(currentTime.minutes);
-  const [selectedPeriod, setSelectedPeriod] = React.useState(currentTime.period);
+  const [selectedHour, setSelectedHour] = useState('7');
+  const [selectedMinute, setSelectedMinute] = useState('00');
+  const [selectedPeriod, setSelectedPeriod] = useState('am');
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
-  const hours = React.useMemo(() => generateHours(), []);
-  const minutes = React.useMemo(() => generateMinutes(), []);
+  useEffect(() => {
+    const loadTime = async () => {
+      const storedTime = await storage.getItem(TIME_KEY);
+      if (storedTime) {
+        const [time, period] = storedTime.toLowerCase().split(/(?=[ap]m)/);
+        const [hour, minute = '00'] = time.split(':');
+        setSelectedHour(hour);
+        setSelectedMinute(minute);
+        setSelectedPeriod(period);
+      }
+    };
+    loadTime();
+  }, []);
+
+  const handleSave = async () => {
+    const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
+    await storage.setItem(TIME_KEY, formattedTime);
+    router.back();
+  };
+
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  const periods = ['am', 'pm'];
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -63,19 +84,6 @@ export default function Page() {
     }).start(() => router.back());
   };
 
-  const handleSave = async () => {
-    const time = `${selectedHour}:${selectedMinute} ${selectedPeriod}`;
-    await storage.setItem('selected_time', time);
-    handleClose();
-  };
-
-  const presetTimes = [
-    '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM',
-    '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM',
-    '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM',
-    '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'
-  ];
-
   return (
     <View style={styles.container}>
       <TouchableOpacity 
@@ -88,118 +96,69 @@ export default function Page() {
           styles.sheet,
           { 
             transform: [{ translateY: slideAnim }],
-            backgroundColor: colors.modalBackground || '#FFFFFF'
+            backgroundColor: '#FFFFFF'
           }
         ]}
       >
         <View style={styles.handle} />
-        <Text style={[styles.title, { color: colors.text }]}>
-          pick a time
+        <Text style={styles.title}>
+          select time
         </Text>
 
         <View style={styles.pickerContainer}>
-          <View style={[styles.customPicker, { width: SCREEN_WIDTH * 0.8 }]}>
-            <ScrollView style={styles.pickerColumn} showsVerticalScrollIndicator={false}>
-              {hours.map((hour) => (
-                <TouchableOpacity
-                  key={hour}
-                  style={[
-                    styles.pickerItem,
-                    selectedHour === hour && styles.selectedItem
-                  ]}
-                  onPress={() => setSelectedHour(hour)}
-                >
-                  <Text style={[
-                    styles.pickerText,
-                    selectedHour === hour && styles.selectedText,
-                    { color: colors.text }
-                  ]}>
-                    {hour}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <Text style={[styles.pickerSeparator, { color: colors.text }]}>:</Text>
-            <ScrollView style={styles.pickerColumn} showsVerticalScrollIndicator={false}>
-              {minutes.map((minute) => (
-                <TouchableOpacity
-                  key={minute}
-                  style={[
-                    styles.pickerItem,
-                    selectedMinute === minute && styles.selectedItem
-                  ]}
-                  onPress={() => setSelectedMinute(minute)}
-                >
-                  <Text style={[
-                    styles.pickerText,
-                    selectedMinute === minute && styles.selectedText,
-                    { color: colors.text }
-                  ]}>
-                    {minute}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={styles.periodPicker}>
-              <TouchableOpacity
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === 'AM' && styles.selectedPeriod
-                ]}
-                onPress={() => setSelectedPeriod('AM')}
-              >
-                <Text style={[
-                  styles.periodText,
-                  selectedPeriod === 'AM' && styles.selectedPeriodText
-                ]}>AM</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === 'PM' && styles.selectedPeriod
-                ]}
-                onPress={() => setSelectedPeriod('PM')}
-              >
-                <Text style={[
-                  styles.periodText,
-                  selectedPeriod === 'PM' && styles.selectedPeriodText
-                ]}>PM</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.timesContainer}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timesScrollContent}
+          <Picker
+            selectedValue={selectedHour}
+            onValueChange={setSelectedHour}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
           >
-            {presetTimes.map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.timeButton,
-                  { backgroundColor: colors.surface || '#F5F5F5' }
-                ]}
-                onPress={() => {
-                  const [timeStr, period] = time.split(' ');
-                  const [hour, minute] = timeStr.split(':');
-                  setSelectedHour(hour.padStart(2, '0'));
-                  setSelectedMinute(minute);
-                  setSelectedPeriod(period);
-                }}
-              >
-                <Text style={[styles.timeText, { color: colors.text }]}>
-                  {time.toLowerCase()}
-                </Text>
-              </TouchableOpacity>
+            {hours.map(hour => (
+              <Picker.Item key={hour} label={hour} value={hour} />
             ))}
-          </ScrollView>
+          </Picker>
+
+          <Text style={styles.pickerSeparator}>:</Text>
+
+          <Picker
+            selectedValue={selectedMinute}
+            onValueChange={setSelectedMinute}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            {minutes.map(minute => (
+              <Picker.Item key={minute} label={minute} value={minute} />
+            ))}
+          </Picker>
+
+          <Picker
+            selectedValue={selectedPeriod}
+            onValueChange={setSelectedPeriod}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            {periods.map(period => (
+              <Picker.Item key={period} label={period} value={period} />
+            ))}
+          </Picker>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.saveButton, { backgroundColor: colors.primary }]}
+        <View style={styles.presetContainer}>
+          {['7:00am', '8:00am', '9:00am', '12:00pm', '3:00pm', '6:00pm'].map(time => (
+            <TouchableOpacity
+              key={time}
+              style={styles.presetButton}
+              onPress={async () => {
+                await storage.setItem(TIME_KEY, time);
+                router.back();
+              }}
+            >
+              <Text style={styles.timeText}>{time}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleSave}
         >
           <Text style={styles.saveButtonText}>Save</Text>
@@ -241,90 +200,56 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#000000',
   },
   pickerContainer: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  customPicker: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    height: 200,
+    justifyContent: 'center',
+    marginBottom: 30,
   },
-  pickerColumn: {
+  picker: {
+    flex: 1,
     height: 200,
-    width: 60,
   },
   pickerItem: {
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedItem: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-  },
-  pickerText: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: 'Nunito_800ExtraBold',
-  },
-  selectedText: {
-    color: '#CFCFCF',
+    color: '#000000',
   },
   pickerSeparator: {
     fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
     marginHorizontal: 10,
-    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
-  periodPicker: {
-    marginLeft: 10,
-  },
-  periodButton: {
-    padding: 8,
-    borderRadius: 8,
-    marginVertical: 4,
-  },
-  selectedPeriod: {
-    backgroundColor: '#CFCFCF',
-  },
-  periodText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#666',
-  },
-  selectedPeriodText: {
-    color: '#FFFFFF',
-  },
-  timesContainer: {
-    marginBottom: 20,
-  },
-  timesScrollContent: {
-    paddingHorizontal: 10,
+  presetContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 10,
+    marginBottom: 30,
   },
-  timeButton: {
+  presetButton: {
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 15,
     paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    borderWidth: 1,
-    borderColor: '#CFCFCF',
+    borderRadius: 20,
   },
   timeText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   saveButton: {
-    backgroundColor: '#CFCFCF',
+    backgroundColor: '#000000',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
   },
   saveButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#FFFFFF',
   },
 }); 

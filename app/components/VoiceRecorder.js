@@ -4,7 +4,6 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { useThemeStore } from '../utils/theme';
 import { storage } from '../utils/storage';
 import NetInfo from '@react-native-community/netinfo';
 import { offlineQueue } from '../utils/offlineQueue';
@@ -42,7 +41,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [remainingRecordings, setRemainingRecordings] = useState(null);
-  const { colors } = useThemeStore();
   const [amplitude, setAmplitude] = useState(0);
 
   useEffect(() => {
@@ -281,7 +279,7 @@ export default function VoiceRecorder({ onRecordingComplete }) {
   return (
     <View style={styles.container}>
       {remainingRecordings !== null && remainingRecordings < 10 && (
-        <Text style={[styles.remainingText, { color: colors.text }]}>
+        <Text style={[styles.remainingText, { color: '#000000' }]}>
           {remainingRecordings} recordings remaining this month
         </Text>
       )}
@@ -291,10 +289,10 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           entering={FadeInUp.duration(200)}
           style={styles.recordingIndicator}
         >
-          <Text style={[styles.recordingText, { color: colors.text }]}>
+          <Text style={[styles.recordingText, { color: '#000000' }]}>
             Recording... {recordingTime}s
           </Text>
-          <View style={[styles.pulsingDot, { backgroundColor: colors.primary }]} />
+          <View style={[styles.pulsingDot, { backgroundColor: '#000000' }]} />
         </Animated.View>
       )}
 
@@ -308,8 +306,8 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           entering={FadeInUp.duration(200)}
           style={styles.processingIndicator}
         >
-          <ActivityIndicator color={colors.primary} />
-          <Text style={[styles.processingText, { color: colors.text }]}>
+          <ActivityIndicator color="#000000" />
+          <Text style={[styles.processingText, { color: '#000000' }]}>
             Transcribing...
           </Text>
         </Animated.View>
@@ -319,7 +317,7 @@ export default function VoiceRecorder({ onRecordingComplete }) {
         style={[
           styles.recordButton,
           isRecording && styles.recordingButton,
-          { backgroundColor: isRecording ? colors.error : colors.primary }
+          { backgroundColor: isRecording ? '#FF0000' : '#000000' }
         ]}
         onPress={isRecording ? stopRecording : startRecording}
         disabled={isProcessing}
@@ -327,7 +325,7 @@ export default function VoiceRecorder({ onRecordingComplete }) {
         <View style={[
           styles.microphoneIcon,
           isRecording && styles.recordingIcon,
-          { backgroundColor: isRecording ? colors.error : colors.primary }
+          { backgroundColor: isRecording ? '#FF0000' : '#000000' }
         ]} />
       </TouchableOpacity>
     </View>
@@ -384,8 +382,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#CFCFCF',
-    opacity: 0.8,
+    backgroundColor: '#000000',
   },
   processingIndicator: {
     flexDirection: 'row',
@@ -399,8 +396,7 @@ const styles = StyleSheet.create({
   },
   remainingText: {
     fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    marginBottom: 10,
-    textAlign: 'center',
+    color: '#000000',
+    fontFamily: 'Nunito_800ExtraBold',
   },
 }); 

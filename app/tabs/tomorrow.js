@@ -19,7 +19,6 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
 import { useAuthStore } from '../utils/auth';
-import { useThemeStore } from '../utils/theme';
 import { scheduleNotificationWithSupabase } from '../utils/notifications';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders } from '../utils/supabaseApi';
@@ -40,8 +39,7 @@ const TIME_KEY = 'selected_time';
 
 export default function TomorrowScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { colors } = useThemeStore();
+  const user = useAuthStore(state => state.user);
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
@@ -374,16 +372,24 @@ export default function TomorrowScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <View style={styles.header}>
-          <Text style={[styles.dateText, { color: colors.text }]}>
-            {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
-          </Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.dateText}>
+              {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
+            </Text>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Text style={styles.settingsText}>settings</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={styles.content}>
@@ -398,11 +404,11 @@ export default function TomorrowScreen() {
                   onLongPress={() => handleDelete(task.id)}
                 >
                   <View style={styles.taskTextContainer}>
-                    <Text style={[styles.taskText, { color: '#CFCFCF' }]}>
+                    <Text style={styles.taskText}>
                       {task.title}
                     </Text>
                     <View style={styles.timeContainer}>
-                      <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
+                      <Text style={styles.timeText}>
                         {task.time}
                       </Text>
                     </View>
@@ -415,7 +421,7 @@ export default function TomorrowScreen() {
             <View style={styles.task}>
               <View style={styles.taskInputContainer}>
                 <TextInput
-                  style={[styles.taskText, { color: '#CFCFCF' }]}
+                  style={styles.taskText}
                   placeholder="+ add item..."
                   placeholderTextColor="#CFCFCF"
                   value={text}
@@ -426,7 +432,7 @@ export default function TomorrowScreen() {
                   style={styles.timeContainer}
                   onPress={() => router.push('/timePicker')}
                 >
-                  <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
+                  <Text style={styles.timeText}>
                     {selectedTime}
                   </Text>
                 </TouchableOpacity>
@@ -464,10 +470,10 @@ export default function TomorrowScreen() {
             style={styles.tab}
             onPress={() => router.push('/tabs/today')}
           >
-            <Text style={[styles.tabText, { color: colors.textSecondary }]}>today</Text>
+            <Text style={[styles.tabText, { color: '#CFCFCF' }]}>today</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tab}>
-            <Text style={[styles.tabText, { color: colors.text }]}>tomorrow</Text>
+            <Text style={[styles.tabText, { color: '#000000' }]}>tomorrow</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -478,6 +484,7 @@ export default function TomorrowScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
@@ -486,12 +493,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
   },
   dateText: {
     fontSize: 24,
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
+    color: '#000000',
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  settingsText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   content: {
     flex: 1,
@@ -518,6 +538,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
+    color: '#000000',
   },
   timeContainer: {
     borderWidth: 1,
@@ -530,35 +551,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
+    color: '#000000',
   },
   taskInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  inputWrapper: {
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 400,
-    paddingBottom: 10,
-  },
-  input: {
-    fontSize: 18,
-    fontFamily: 'Nunito_800ExtraBold',
-    paddingVertical: 10,
-    flex: 1,
-    textAlign: 'center',
-  },
-  timePickerButton: {
-    paddingLeft: 15,
   },
   tabBar: {
     flexDirection: 'row',

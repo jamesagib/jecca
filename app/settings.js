@@ -1,131 +1,90 @@
-import { useState, useEffect } from 'react';
-import { useRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { useEffect, useState } from 'react';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import { useThemeStore } from './utils/theme';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
-const TASKS_KEY = 'tasks';
 
-export default function SettingsModal() {
+export default function SettingsScreen() {
   const router = useRouter();
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['35%'], []);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const { user, signOut } = useAuthStore();
-  const { colors } = useThemeStore();
+  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
+  const signOut = useAuthStore(state => state.signOut);
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/onboarding1');
-    }
-  }, [user, router]);
-
-  const handleSheetChanges = useCallback((index) => {
-    if (index === -1) {
-      router.back();
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const loadToggleState = async () => {
+    const loadSettings = async () => {
       const storedToggle = await storage.getItem(TOGGLE_KEY);
-      if (storedToggle !== null) {
-        setIsEnabled(storedToggle === 'true');
-      }
+      setRemoveAfterCompletion(storedToggle === 'true');
     };
-    loadToggleState();
+    loadSettings();
   }, []);
 
-  const renderBackdrop = useCallback(
-    props => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
   const toggleSwitch = async () => {
-    try {
-      const newState = !isEnabled;
-      await storage.setItem(TOGGLE_KEY, newState.toString());
-      setIsEnabled(newState);
-    } catch (error) {
-      console.error('Error toggling switch:', error);
-      Alert.alert('Error', 'Failed to update setting.');
-    }
-  };
-
-  const clearAllReminders = async () => {
-    try {
-      await storage.removeItem(TASKS_KEY);
-      Alert.alert('Success', 'All reminders have been cleared.');
-      router.push('/tabs/today');
-    } catch (error) {
-      console.error('Error clearing reminders:', error);
-      Alert.alert('Error', 'Failed to clear reminders.');
-    }
+    const newState = !removeAfterCompletion;
+    setRemoveAfterCompletion(newState);
+    await storage.setItem(TOGGLE_KEY, newState.toString());
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace('/onboarding1');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out.');
-    }
+    await signOut();
+    router.replace('/onboarding1');
+  };
+
+  const handleClearReminders = () => {
+    Alert.alert(
+      "Clear All Reminders",
+      "Are you sure you want to clear all reminders? This cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All",
+          onPress: async () => {
+            await storage.removeItem('tasks');
+            router.back();
+          },
+          style: "destructive"
+        }
+      ]
+    );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.modalBackground }]}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>settings</Text>
-        
-        <View style={[styles.section, { borderColor: colors.border }]}>
-          <View style={styles.settingRow}>
-            <Text style={[styles.settingText, { color: colors.text }]}>Remove reminder after completion</Text>
-            <Switch
-              trackColor={{false: '#CFCFCF', true: '#53d769'}}
-              thumbColor={isEnabled ? 'white' : 'white'}
-              ios_backgroundColor="#CFCFCF"
-              onValueChange={toggleSwitch}
-              value={isEnabled}
-            />
-          </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>settings</Text>
+      
+      <View style={styles.section}>
+        <View style={styles.settingRow}>
+          <Text style={styles.settingText}>Remove reminder after completion</Text>
+          <Switch
+            value={removeAfterCompletion}
+            onValueChange={toggleSwitch}
+          />
         </View>
-          
-        <TouchableOpacity 
-          style={[styles.clearButton, { backgroundColor: colors.buttonBackground }]} 
-          onPress={() => {
-            Alert.alert(
-              'Clear All Reminders',
-              'Are you sure you want to clear all reminders?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'OK', onPress: clearAllReminders },
-              ]
-            );
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.closeButtonText, { color: colors.buttonText }]}>Clear reminders</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.signOutButton, { backgroundColor: colors.buttonBackground }]} 
-          onPress={handleSignOut}
-        >
-          <Text style={[styles.signOutText, { color: colors.buttonText }]}>sign out</Text>
-        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={styles.clearButton}
+        onPress={handleClearReminders}
+      >
+        <Text style={styles.clearButtonText}>Clear reminders</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.signOutButton}
+        onPress={handleSignOut}
+      >
+        <Text style={styles.signOutText}>sign out</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.closeButtonText}>close</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -133,55 +92,61 @@ export default function SettingsModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-end',
-  },
-  content: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF',
     padding: 20,
-    paddingBottom: 40,
   },
   title: {
     fontSize: 24,
     fontFamily: 'Nunito_800ExtraBold',
     marginBottom: 20,
+    color: '#000000',
   },
   section: {
     borderBottomWidth: 1,
+    borderColor: '#CFCFCF',
     paddingVertical: 15,
   },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 5,
   },
   settingText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   clearButton: {
-    marginTop: 10,
-    paddingVertical: 12,
-    width: '96%',
-    alignItems: 'center',
-    backgroundColor: 'red',
-    borderRadius: 12
-  },
-  closeButtonText: {
-    color: 'white',  
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    textTransform: 'lowercase',
-  },
-  signOutButton: {
-    marginTop: 20,
+    backgroundColor: '#F5F5F5',
     padding: 15,
     borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
+  },
+  signOutButton: {
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
     alignItems: 'center',
   },
   signOutText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
+  },
+  closeButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
 });

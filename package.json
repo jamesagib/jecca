@@ -15,6 +15,7 @@
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/netinfo": "11.4.1",
+    "@react-native-picker/picker": "2.11.0",
     "@shopify/flash-list": "1.7.6",
     "@stardazed/streams-polyfill": "^2.4.0",
     "@supabase/auth-js": "^2.69.1",

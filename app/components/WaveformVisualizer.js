@@ -1,73 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { useThemeStore } from '../utils/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BAR_WIDTH = 3;
-const BAR_GAP = 2;
-const MAX_HEIGHT = 50;
-const NUM_BARS = Math.floor(SCREEN_WIDTH * 0.8 / (BAR_WIDTH + BAR_GAP));
+export default function WaveformVisualizer({ waveform, width = 200, height = 60 }) {
+  if (!waveform || waveform.length === 0) {
+    return <View style={[styles.container, { width, height }]} />;
+  }
 
-export default function WaveformVisualizer({ isRecording, amplitude = 0 }) {
-  const [bars, setBars] = useState([]);
-  const { colors } = useThemeStore();
+  // Normalize waveform data to fit within height
+  const maxAmplitude = Math.max(...waveform);
+  const normalizedWaveform = waveform.map(amp => (amp / maxAmplitude) * height);
 
-  useEffect(() => {
-    if (isRecording) {
-      // Add new amplitude to bars array
-      setBars(prev => {
-        const newBars = [...prev, amplitude];
-        // Keep only the last NUM_BARS amplitudes
-        return newBars.slice(-NUM_BARS);
-      });
-    } else {
-      // Reset bars when not recording
-      setBars([]);
-    }
-  }, [isRecording, amplitude]);
-
-  // Generate SVG path for waveform
-  const generatePath = () => {
-    if (bars.length === 0) return '';
-
-    let path = '';
-    const barWidth = BAR_WIDTH;
-    const gap = BAR_GAP;
-
-    bars.forEach((amp, index) => {
-      // Normalize amplitude to max height
-      const height = Math.min(Math.abs(amp * MAX_HEIGHT), MAX_HEIGHT);
-      const x = index * (barWidth + gap);
-      const y = MAX_HEIGHT - height;
-
-      if (index === 0) {
-        path += `M ${x} ${y} `;
-      } else {
-        path += `L ${x} ${y} `;
-      }
-    });
-
-    return path;
-  };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: withSpring(isRecording ? MAX_HEIGHT : 0),
-    opacity: withSpring(isRecording ? 1 : 0),
-  }));
+  // Calculate points for the path
+  const points = normalizedWaveform.map((amp, i) => {
+    const x = (i / (waveform.length - 1)) * width;
+    const y = (height - amp) / 2;
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
-      <Svg width={SCREEN_WIDTH * 0.8} height={MAX_HEIGHT}>
+    <View style={[styles.container, { width, height }]}>
+      <Svg width={width} height={height}>
         <Path
-          d={generatePath()}
-          stroke={colors.primary}
-          strokeWidth={BAR_WIDTH}
+          d={points}
+          stroke="#000000"
+          strokeWidth="2"
           fill="none"
         />
       </Svg>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -75,7 +36,5 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    marginVertical: 10,
   },
 }); 
