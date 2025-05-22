@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 
@@ -10,6 +12,26 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const signOut = useAuthStore(state => state.signOut);
+
+  // Bottom sheet setup
+  const snapPoints = useMemo(() => ['50%', '75%'], []);
+  const handleSheetChanges = useCallback((index) => {
+    if (index === -1) {
+      router.back();
+    }
+  }, [router]);
+
+  const renderBackdrop = useCallback(
+    props => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -52,47 +74,53 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>settings</Text>
-      
-      <View style={styles.section}>
-        <View style={styles.settingRow}>
-          <Text style={styles.settingText}>Remove reminder after completion</Text>
-          <Switch
-            value={removeAfterCompletion}
-            onValueChange={toggleSwitch}
-          />
+    <GestureHandlerRootView style={styles.container}>
+      <BottomSheet
+        index={0}
+        snapPoints={snapPoints}
+        onChange={handleSheetChanges}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+      >
+        <View style={styles.contentContainer}>
+          <Text style={styles.title}>settings</Text>
+          
+          <View style={styles.section}>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingText}>Remove reminder after completion</Text>
+              <Switch
+                value={removeAfterCompletion}
+                onValueChange={toggleSwitch}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearReminders}
+          >
+            <Text style={styles.clearButtonText}>Clear reminders</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+          >
+            <Text style={styles.signOutText}>sign out</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.clearButton}
-        onPress={handleClearReminders}
-      >
-        <Text style={styles.clearButtonText}>Clear reminders</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.signOutButton}
-        onPress={handleSignOut}
-      >
-        <Text style={styles.signOutText}>sign out</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.closeButtonText}>close</Text>
-      </TouchableOpacity>
-    </View>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+  },
+  contentContainer: {
+    flex: 1,
     padding: 20,
   },
   title: {
@@ -136,15 +164,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#000000',
-  },
-  closeButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  closeButtonText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',

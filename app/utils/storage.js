@@ -6,33 +6,69 @@ const AUTH_STORAGE_KEY = 'auth_data';
 
 class Storage {
   async getItem(key) {
-    if (Platform.OS === 'web') {
-      const value = localStorage.getItem(key);
-      return value;
+    try {
+      if (Platform.OS === 'web') {
+        const value = localStorage.getItem(key);
+        return value;
+      }
+      return await SecureStore.getItemAsync(key);
+    } catch (error) {
+      console.error(`Error reading item ${key}:`, error);
+      return null;
     }
-    return await SecureStore.getItemAsync(key);
   }
 
   async setItem(key, value) {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(key, value);
-      return;
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(key, value);
+        return;
+      }
+      await SecureStore.setItemAsync(key, value);
+    } catch (error) {
+      console.error(`Error setting item ${key}:`, error);
+      throw error;
     }
-    await SecureStore.setItemAsync(key, value);
   }
 
   async removeItem(key) {
-    if (Platform.OS === 'web') {
-      localStorage.removeItem(key);
-      return;
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+        return;
+      }
+      await SecureStore.deleteItemAsync(key);
+    } catch (error) {
+      console.error(`Error removing item ${key}:`, error);
+      throw error;
     }
-    await SecureStore.deleteItemAsync(key);
   }
 
   // Auth-specific methods
   async saveAuthData(user, accessToken) {
-    const authData = JSON.stringify({ user, accessToken });
-    await this.setItem(AUTH_STORAGE_KEY, authData);
+    try {
+      if (!user || !accessToken) {
+        console.warn('Attempted to save invalid auth data:', { hasUser: !!user, hasToken: !!accessToken });
+        return;
+      }
+
+      const authData = JSON.stringify({
+        user,
+        accessToken,
+        timestamp: new Date().toISOString()
+      });
+
+      await this.setItem(AUTH_STORAGE_KEY, authData);
+      
+      console.log('Auth data saved successfully:', {
+        userId: user.id,
+        tokenPreview: accessToken.substring(0, 10) + '...',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error saving auth data:', error);
+      throw error;
+    }
   }
 
   async getAuthData() {
@@ -44,28 +80,56 @@ class Storage {
       }
       
       const parsedData = JSON.parse(authData);
+      
+      // Validate the structure of the auth data
+      if (!parsedData.user?.id || !parsedData.accessToken) {
+        console.warn('Invalid auth data structure found:', {
+          hasUser: !!parsedData.user,
+          hasUserId: !!parsedData.user?.id,
+          hasToken: !!parsedData.accessToken
+        });
+        await this.clearAuthData();
+        return null;
+      }
+
       console.log('Retrieved auth data:', {
-        hasUser: !!parsedData.user,
-        hasToken: !!parsedData.accessToken,
-        userId: parsedData.user?.id,
-        tokenPreview: parsedData.accessToken ? parsedData.accessToken.substring(0, 10) + '...' : 'none'
+        userId: parsedData.user.id,
+        tokenPreview: parsedData.accessToken.substring(0, 10) + '...',
+        timestamp: parsedData.timestamp
       });
       
       return parsedData;
     } catch (error) {
       console.error('Error reading auth data:', error);
+      await this.clearAuthData();
       return null;
     }
   }
 
   async clearAuthData() {
-    await this.removeItem(AUTH_STORAGE_KEY);
+    try {
+      await this.removeItem(AUTH_STORAGE_KEY);
+      console.log('Auth data cleared successfully');
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
+      throw error;
+    }
   }
 
   async getSupabaseConfig() {
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase configuration:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey
+      });
+    }
+
     return {
-      supabaseUrl: Constants.expoConfig.extra.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: Constants.expoConfig.extra.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      supabaseUrl,
+      supabaseAnonKey
     };
   }
 }

@@ -10,6 +10,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { offlineQueue } from '../utils/offlineQueue';
 import { usageLimit } from '../utils/usageLimit';
 import { transcriptionCache } from '../utils/transcriptionCache';
+import { useAuthStore } from '../utils/auth';
 import WaveformVisualizer from './WaveformVisualizer';
 
 const MAX_RECORDING_TIME = 30; // seconds
@@ -37,6 +38,7 @@ const RECORDING_OPTIONS = {
 };
 
 export default function VoiceRecorder({ onRecordingComplete }) {
+  const user = useAuthStore(state => state.user);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -165,20 +167,25 @@ export default function VoiceRecorder({ onRecordingComplete }) {
 
   const processAudioFile = async (audioUri) => {
     try {
-      // Check network connectivity
-      const networkState = await NetInfo.fetch();
-      
-      if (!networkState.isConnected) {
-        // Save to offline queue
-        await offlineQueue.addToQueue(audioUri);
-        alert('You are offline. Your recording will be processed when you are back online.');
+      // Check authentication first using Zustand store
+      if (!user) {
+        alert('Please sign in to use voice recording features.');
         return;
       }
 
-      // Check authentication
+      // Get auth data from storage for API calls
       const authData = await storage.getAuthData();
-      if (!authData || !authData.accessToken) {
-        alert('Please sign in to use voice recording features.');
+      if (!authData?.accessToken) {
+        console.error('No access token found');
+        alert('Please sign in again to use voice recording features.');
+        return;
+      }
+
+      // Check network connectivity after auth
+      const networkState = await NetInfo.fetch();
+      if (!networkState.isConnected) {
+        await offlineQueue.addToQueue(audioUri);
+        alert('You are offline. Your recording will be processed when you are back online.');
         return;
       }
 
@@ -244,12 +251,12 @@ export default function VoiceRecorder({ onRecordingComplete }) {
     } catch (error) {
       console.error('Transcription failed:', error);
       
-      if (!storage.getAuthData()) {
-        alert('Please sign in to use voice recording features.');
-      } else {
-        // Save to offline queue on error
+      // Only add to offline queue if it's a network error
+      if (!navigator.onLine || error.name === 'TypeError') {
         await offlineQueue.addToQueue(audioUri);
         alert('Failed to process recording. It will be retried when possible.');
+      } else {
+        alert('Failed to process recording. Please try again.');
       }
     } finally {
       setIsProcessing(false);

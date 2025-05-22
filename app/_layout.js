@@ -103,7 +103,14 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="tabs" />
-          <Stack.Screen name="settings" />
+          <Stack.Screen 
+            name="settings"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'fade',
+              animationDuration: 200,
+            }}
+          />
           <Stack.Screen
             name="timePicker"
             options={{
