@@ -232,29 +232,26 @@ export default function TomorrowScreen() {
       // If user is logged in, save to Supabase first
       if (user && accessToken) {
         try {
-          // Find the newly added task (it will be the last one in the array)
-          const newTask = tomorrowTasks[tomorrowTasks.length - 1];
-          
-          // Only save the new task to Supabase
-          const taskToSave = {
-            id: newTask.id,
-            title: newTask.title,
-            time: newTask.time,
-            date: newTask.date,
-            completed: newTask.completed || false,
+          // Transform all tasks for Supabase
+          const tasksToSave = tomorrowTasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            time: task.time,
+            date: task.date,
+            completed: task.completed || false,
             user_id: user.id,
-            notification_id: newTask.notificationId,
+            notification_id: task.notificationId,
             synced_at: new Date().toISOString()
-          };
+          }));
           
           console.log('Current user:', { 
             id: user.id, 
             email: user.email,
             accessToken: accessToken?.substring(0, 10) + '...' || 'missing'
           });
-          console.log('Saving to Supabase:', JSON.stringify(taskToSave, null, 2));
+          console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
           
-          const { error: upsertError, data } = await upsertReminders([taskToSave], accessToken);
+          const { error: upsertError, data } = await upsertReminders(tasksToSave, accessToken);
           console.log('Supabase response:', { data, error: upsertError });
           
           if (upsertError) {

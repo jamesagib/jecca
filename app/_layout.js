@@ -18,46 +18,22 @@ export default function RootLayout() {
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const initializeAuth = useAuthStore(state => state.initialize);
-  const user = useAuthStore(state => state.user);
 
   const prepare = useCallback(async () => {
     try {
-      console.log('Starting app initialization...');
-      
-      // Initialize auth first and wait for it to complete
+      // Initialize auth state
       await initializeAuth();
-      console.log('Auth initialized');
       
-      // Only proceed if auth initialization is complete
-      if (!useAuthStore.getState().initialized) {
-        console.error('Auth initialization failed');
-        throw new Error('Auth initialization failed');
-      }
-
-      const onboardingStatus = await storage.getItem('onboardingComplete');
-      const hasCompletedOnboarding = onboardingStatus === 'true';
-      console.log('Onboarding status:', hasCompletedOnboarding);
+      // Check if onboarding is complete
+      const onboardingComplete = await storage.getItem('onboardingComplete');
+      setIsOnboardingComplete(onboardingComplete === 'true');
       
-      setIsOnboardingComplete(hasCompletedOnboarding);
-
-      // Get the current auth state after initialization
-      const currentUser = useAuthStore.getState().user;
+      // Register for push notifications if needed
+      await registerForPushNotifications();
       
-      if (currentUser) {
-        try {
-          // Add a small delay to ensure auth state is stable
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await registerForPushNotifications();
-          console.log('Push notifications registered successfully');
-        } catch (error) {
-          console.warn('Failed to register push notifications:', error);
-        }
-        
-        await syncReminders();
-        console.log('Reminders synced');
-      }
-
-      console.log('Initialization complete');
+      // Sync reminders
+      await syncReminders();
+      
       setInitializing(false);
       await SplashScreen.hideAsync();
     } catch (e) {
@@ -106,9 +82,13 @@ export default function RootLayout() {
           <Stack.Screen 
             name="settings"
             options={{
-              presentation: 'transparentModal',
-              animation: 'fade',
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
               animationDuration: 200,
+              contentStyle: {
+                backgroundColor: 'transparent',
+              },
+              headerShown: false,
             }}
           />
           <Stack.Screen

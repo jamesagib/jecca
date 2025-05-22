@@ -1,10 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
-import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 
@@ -12,26 +10,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const signOut = useAuthStore(state => state.signOut);
-
-  // Bottom sheet setup
-  const snapPoints = useMemo(() => ['50%', '75%'], []);
-  const handleSheetChanges = useCallback((index) => {
-    if (index === -1) {
-      router.back();
-    }
-  }, [router]);
-
-  const renderBackdrop = useCallback(
-    props => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -73,17 +52,25 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleClose = () => {
+    setIsVisible(false);
+    router.back();
+  };
+
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <BottomSheet
-        index={0}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        backdropComponent={renderBackdrop}
-        enablePanDownToClose
-        style={styles.bottomSheet}
-      >
-        <View style={styles.contentContainer}>
+    <Modal
+      visible={isVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleClose}
+    >
+      <View style={styles.container}>
+        <Pressable 
+          style={styles.backdrop} 
+          onPress={handleClose}
+        />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
           <Text style={styles.title}>settings</Text>
           
           <View style={styles.section}>
@@ -110,32 +97,36 @@ export default function SettingsScreen() {
             <Text style={styles.signOutText}>sign out</Text>
           </TouchableOpacity>
         </View>
-      </BottomSheet>
-    </GestureHandlerRootView>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
   },
-  bottomSheet: {
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  contentContainer: {
-    flex: 1,
     padding: 20,
+    paddingBottom: 40,
+    height: '50%',
+    width: '100%',
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#CFCFCF',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,

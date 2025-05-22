@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { addDays, startOfDay, isSameDay } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
 
 const useTaskStore = create((set, get) => ({
   tasks: [],
   
   addTask: (task) => set((state) => ({
-    tasks: [...state.tasks, { ...task, id: Date.now().toString() }]
+    tasks: [...state.tasks, { ...task, id: uuidv4() }]
   })),
   
   removeTask: (taskId) => set((state) => ({
