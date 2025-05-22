@@ -81,6 +81,7 @@ export default function SettingsScreen() {
         onChange={handleSheetChanges}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
+        style={styles.bottomSheet}
       >
         <View style={styles.contentContainer}>
           <Text style={styles.title}>settings</Text>
@@ -118,6 +119,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  bottomSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   contentContainer: {
     flex: 1,

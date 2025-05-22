@@ -1,73 +1,78 @@
 import { useEffect, useState } from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '../utils/auth';
 import Constants from 'expo-constants';
-import { makeRedirectUri } from 'expo-auth-session';
 
-WebBrowser.maybeCompleteAuthSession();
-
-console.log('Expo Google OAuth redirect URI:', makeRedirectUri());
+// Configure Google Sign In
+GoogleSignin.configure({
+  iosClientId: Constants.expoConfig?.extra?.iosClientId,
+  webClientId: Constants.expoConfig?.extra?.expoClientId, // Used for Android
+});
 
 export default function GoogleAuth({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: Constants.expoConfig?.extra?.androidClientId,
-    iosClientId: Constants.expoConfig?.extra?.iosClientId,
-    expoClientId: Constants.expoConfig?.extra?.expoClientId,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      setLoading(true);
-      const { id_token } = response.params;
-      handleGoogleSignIn(id_token);
-    }
-  }, [response]);
-
-  const handleGoogleSignIn = async (idToken) => {
+  const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithGoogle(idToken);
-      if (result && result.user) {
-        onSuccess(result.user);
+      setLoading(true);
+      
+      // Check if user is already signed in
+      await GoogleSignin.signOut();
+      
+      // Start sign in flow
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      
+      if (userInfo.idToken) {
+        const result = await signInWithGoogle(userInfo.idToken);
+        if (result && result.user) {
+          onSuccess(result.user);
+        }
+      } else {
+        console.error('No ID token present in Google Sign In response');
       }
     } catch (error) {
-      console.error('Error signing in with Google:', error.message);
+      console.error('Google Sign In Error:', error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled the sign in flow');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('Sign in already in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.log('Play services not available');
+      } else {
+        console.error('Other error:', error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.buttonContainer}>
-      <TouchableOpacity 
-        style={[styles.button, styles.disabled]} 
-        disabled={true}
-      >
-        <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
-      <View style={styles.overlay}>
-        <Text style={styles.comingSoonText}>coming soon!</Text>
-      </View>
-    </View>
+    <TouchableOpacity 
+      style={[styles.button, loading && styles.disabled]} 
+      onPress={handleGoogleSignIn}
+      disabled={loading}
+    >
+      <Text style={styles.buttonText}>
+        {loading ? 'Signing in...' : 'Continue with Google'}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  buttonContainer: {
-    position: 'relative',
-    width: '100%',
-    marginBottom: 10,
-  },
   button: {
     backgroundColor: '#4285F4',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
+    marginBottom: 10,
   },
   disabled: {
     opacity: 0.5,
@@ -77,27 +82,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     textTransform: 'lowercase',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 8,
-  },
-  comingSoonText: {
-    color: '#000',
-    fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
-    textTransform: 'lowercase',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
 });

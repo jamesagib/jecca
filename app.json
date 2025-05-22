@@ -54,7 +54,8 @@
           "color": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "notification": {
       "icon": "./assets/splash-icon.png",
