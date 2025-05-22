@@ -1,8 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Pressable } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS
+} from 'react-native-reanimated';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
 
@@ -11,6 +21,7 @@ export default function SettingsScreen() {
   const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const signOut = useAuthStore(state => state.signOut);
   const [isVisible, setIsVisible] = useState(true);
+  const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -18,6 +29,13 @@ export default function SettingsScreen() {
       setRemoveAfterCompletion(storedToggle === 'true');
     };
     loadSettings();
+
+    // Start entrance animation
+    translateY.value = withSpring(0, {
+      damping: 20,
+      mass: 1,
+      stiffness: 100,
+    });
   }, []);
 
   const toggleSwitch = async () => {
@@ -44,7 +62,7 @@ export default function SettingsScreen() {
           text: "Clear All",
           onPress: async () => {
             await storage.removeItem('tasks');
-            router.back();
+            handleClose();
           },
           style: "destructive"
         }
@@ -53,23 +71,42 @@ export default function SettingsScreen() {
   };
 
   const handleClose = () => {
-    setIsVisible(false);
-    router.back();
+    translateY.value = withTiming(SCREEN_HEIGHT, {
+      duration: 250,
+    }, () => {
+      runOnJS(setIsVisible)(false);
+      runOnJS(router.back)();
+    });
   };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  if (!isVisible) return null;
 
   return (
     <Modal
-      visible={isVisible}
       transparent
-      animationType="slide"
+      visible={isVisible}
+      animationType="none"
+      statusBarTranslucent
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        <Pressable 
+        <TouchableOpacity 
           style={styles.backdrop} 
+          activeOpacity={1} 
           onPress={handleClose}
         />
-        <View style={styles.sheet}>
+        <Animated.View 
+          style={[
+            styles.sheet,
+            animatedStyle
+          ]}
+        >
           <View style={styles.handle} />
           <Text style={styles.title}>settings</Text>
           
@@ -96,7 +133,7 @@ export default function SettingsScreen() {
           >
             <Text style={styles.signOutText}>sign out</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -106,6 +143,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'flex-end',
+    backgroundColor: 'transparent',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -117,8 +155,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 40,
-    height: '50%',
+    height: SCREEN_HEIGHT * 0.5,
     width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   handle: {
     width: 40,

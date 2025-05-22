@@ -75,28 +75,33 @@ export default function RootLayout() {
       ) : (
         <Stack
           screenOptions={{
-            headerShown: false
+            headerShown: false,
+            presentation: 'modal',
+            animation: 'none',
+            contentStyle: {
+              backgroundColor: '#FFFFFF'
+            }
           }}
         >
           <Stack.Screen name="tabs" />
           <Stack.Screen 
             name="settings"
             options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
-              animationDuration: 200,
+              presentation: 'transparentModal',
+              animation: 'none',
               contentStyle: {
-                backgroundColor: 'transparent',
-              },
-              headerShown: false,
+                backgroundColor: 'transparent'
+              }
             }}
           />
           <Stack.Screen
             name="timePicker"
             options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
-              animationDuration: 200,
+              presentation: 'transparentModal',
+              animation: 'none',
+              contentStyle: {
+                backgroundColor: 'transparent'
+              }
             }}
           />
         </Stack>
