@@ -13,18 +13,6 @@ export default function GoogleAuth({ onSuccess }) {
   const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
   const setError = useAuthStore((state) => state.setError);
 
-  // Log all possible redirect URIs
-  console.log('=== Google Auth Configuration ===');
-  console.log('1. Proxy Redirect URI:', makeRedirectUri({
-    useProxy: true,
-  }));
-  console.log('2. Native Redirect URI:', makeRedirectUri({
-    scheme: Constants.expoConfig?.scheme
-  }));
-  console.log('3. Bundle Identifier:', Constants.expoConfig?.ios?.bundleIdentifier);
-  console.log('4. iOS Client ID:', Constants.expoConfig?.extra?.iosClientId);
-  console.log('==============================');
-
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: Constants.expoConfig?.extra?.iosClientId,
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
