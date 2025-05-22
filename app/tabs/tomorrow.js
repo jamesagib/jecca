@@ -372,9 +372,10 @@ export default function TomorrowScreen() {
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS,
-          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+          interruptionModeIOS: 1,  // Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS
+          interruptionModeAndroid: 1,  // Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false
         });
       } catch (error) {
         console.error('Error setting up audio:', error);
