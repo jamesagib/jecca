@@ -38,8 +38,12 @@ function MainLayout() {
       <Stack.Screen
         name="timePicker"
         options={{
-          presentation: 'transparentModal',
-          animation: Platform.OS === 'ios' ? 'fade' : 'slide_from_bottom',
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          }
         }}
       />
     </Stack>
