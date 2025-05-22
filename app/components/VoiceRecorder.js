@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { storage } from '../utils/storage';
 import NetInfo from '@react-native-community/netinfo';
 import { offlineQueue } from '../utils/offlineQueue';
@@ -322,11 +323,11 @@ export default function VoiceRecorder({ onRecordingComplete }) {
         onPress={isRecording ? stopRecording : startRecording}
         disabled={isProcessing}
       >
-        <View style={[
-          styles.microphoneIcon,
-          isRecording && styles.recordingIcon,
-          { backgroundColor: isRecording ? '#FF0000' : '#000000' }
-        ]} />
+        <Feather 
+          name="mic" 
+          size={24} 
+          color="#FFFFFF"
+        />
       </TouchableOpacity>
     </View>
   );
@@ -337,6 +338,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 15 : 30, // 30px above the tab bar
+    left: 0,
+    right: 0,
   },
   recordButton: {
     width: 64,
@@ -356,17 +361,6 @@ const styles = StyleSheet.create({
   },
   recordingButton: {
     transform: [{ scale: 1.1 }],
-  },
-  microphoneIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#CFCFCF',
-  },
-  recordingIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
   },
   recordingIndicator: {
     flexDirection: 'row',

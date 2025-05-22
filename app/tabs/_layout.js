@@ -11,17 +11,23 @@ export default memo(function TabsLayout() {
           display: 'none'
         },
         animation: 'none',
-        sceneContainerStyle: {
-          flex: 1, 
-          maxWidth: Platform.OS === 'web' ? '100%' : '100%',
-          width: '100%',
-          alignSelf: 'center',
-          backgroundColor: '#fff'
+        contentStyle: {
+          backgroundColor: '#FFFFFF'
         }
       }}
     >
-      <Tabs.Screen name="today" />
-      <Tabs.Screen name="tomorrow" />
+      <Tabs.Screen 
+        name="today" 
+        options={{
+          headerShown: false
+        }}
+      />
+      <Tabs.Screen 
+        name="tomorrow" 
+        options={{
+          headerShown: false
+        }}
+      />
     </Tabs>
   );
 });

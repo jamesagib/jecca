@@ -86,44 +86,30 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {!isOnboardingComplete ? (
-        <Stack>
-          <Stack.Screen
-            name="onboarding1"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding2"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="email-auth"
-            options={{
-              headerShown: false,
-            }}
-          />
+        <Stack
+          screenOptions={{
+            headerShown: false
+          }}
+        >
+          <Stack.Screen name="onboarding1" />
+          <Stack.Screen name="onboarding2" />
+          <Stack.Screen name="onboarding3" />
+          <Stack.Screen name="email-auth" />
         </Stack>
       ) : (
-        <Stack>
-          <Stack.Screen
-            name="tabs"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              headerShown: false,
-            }}
-          />
+        <Stack
+          screenOptions={{
+            headerShown: false
+          }}
+        >
+          <Stack.Screen name="tabs" />
+          <Stack.Screen name="settings" />
           <Stack.Screen
             name="timePicker"
             options={{
-              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              animationDuration: 200,
             }}
           />
         </Stack>
