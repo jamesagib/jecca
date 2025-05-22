@@ -1,4 +1,5 @@
 import { supabaseUrl, supabaseAnonKey } from './supabaseConfig';
+import moment from 'moment';
 
 // --- PUSH NOTIFICATIONS ---
 export async function savePushToken(userId, pushToken, deviceId, accessToken) {
@@ -132,10 +133,11 @@ export async function upsertReminders(reminders, accessToken) {
       date: reminder.date,
       completed: reminder.completed || false,
       user_id: reminder.user_id,
-      notification_id: reminder.notification_id, // Using the correct field name
+      notification_id: reminder.notification_id,
       synced_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      timezone: moment.tz.guess() // Add user's timezone
     }));
 
     console.log('Formatted reminders:', JSON.stringify(formattedReminders, null, 2));
@@ -157,7 +159,45 @@ export async function upsertReminders(reminders, accessToken) {
       throw new Error(error.message || 'Failed to upsert reminders');
     }
 
-    return { data: await res.json(), error: null };
+    const data = await res.json();
+
+    // Schedule push notifications for each reminder
+    for (const reminder of formattedReminders) {
+      try {
+        // Only schedule if not completed and has a future date/time
+        if (!reminder.completed) {
+          // Create a moment object in the user's timezone
+          const userTimezone = reminder.timezone || moment.tz.guess();
+          const reminderDate = moment.tz(
+            reminder.date + ' ' + reminder.time,
+            'YYYY-MM-DD h:mma',
+            userTimezone
+          );
+          const now = moment().tz(userTimezone);
+          
+          if (reminderDate.isAfter(now)) {
+            await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                reminder_id: reminder.id,
+                user_id: reminder.user_id,
+                timezone: userTimezone,
+                scheduled_time: reminderDate.toISOString()
+              }),
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error scheduling push notification:', notificationError);
+        // Continue with other reminders even if one fails
+      }
+    }
+
+    return { data, error: null };
   } catch (error) {
     console.error('Error upserting reminders:', error);
     return { data: null, error };

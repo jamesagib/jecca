@@ -8,6 +8,7 @@ create table public.reminders (
     completed boolean default false,
     user_id uuid references auth.users(id) on delete cascade not null,
     user_email text,
+    timezone text default 'UTC',
     created_at timestamptz default now(),
     updated_at timestamptz default now(),
     synced_at timestamptz default now()

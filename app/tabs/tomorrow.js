@@ -23,7 +23,7 @@ import { useAuthStore } from '../utils/auth';
 import { scheduleNotificationWithSupabase } from '../utils/notifications';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders } from '../utils/supabaseApi';
-import VoiceRecorder from '../components/VoiceRecorder';
+// import VoiceRecorder from '../components/VoiceRecorder';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configure notifications to show when app is in foreground
@@ -450,7 +450,7 @@ export default function TomorrowScreen() {
             </View>
           </View>
 
-          <VoiceRecorder 
+          {/* <VoiceRecorder 
             onRecordingComplete={async (transcribedText) => {
               // Create a new task with the transcribed text
               const newTask = {
@@ -472,7 +472,7 @@ export default function TomorrowScreen() {
               // Schedule notification if needed
               await scheduleNotification(newTask);
             }}
-          />
+          /> */}
         </View>
 
         <View style={styles.tabBar}>
