@@ -7,9 +7,13 @@ DROP TABLE IF EXISTS reminders;
 CREATE TABLE reminders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  datetime TIMESTAMP WITH TIME ZONE,
-  is_voice BOOLEAN DEFAULT false,
+  title TEXT NOT NULL,
+  time TEXT NOT NULL,
+  date TEXT NOT NULL,
+  completed BOOLEAN DEFAULT false,
+  notification_id TEXT,
+  user_email TEXT,
+  synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -52,10 +56,13 @@ CREATE TRIGGER update_reminders_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create indexes after table and columns exist
-CREATE INDEX IF NOT EXISTS idx_reminders_user_datetime 
-  ON reminders(user_id, datetime);
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_reminders_user_date 
+  ON reminders(user_id, date);
 
-CREATE INDEX IF NOT EXISTS idx_reminders_voice 
-  ON reminders(user_id) 
-  WHERE is_voice = true; 
+CREATE INDEX IF NOT EXISTS idx_reminders_completed 
+  ON reminders(user_id, completed);
+
+CREATE INDEX IF NOT EXISTS idx_reminders_notification 
+  ON reminders(notification_id) 
+  WHERE notification_id IS NOT NULL; 

@@ -35,6 +35,13 @@ const RECORDING_OPTIONS = {
     linearPCMIsFloat: false,
     meteringEnabled: true,
   },
+  web: {
+    extension: '.wav',
+    sampleRate: 44100,
+    numberOfChannels: 1,
+    bitRate: 128000,
+    meteringEnabled: false,
+  },
 };
 
 export default function VoiceRecorder({ onRecordingComplete }) {
@@ -45,6 +52,25 @@ export default function VoiceRecorder({ onRecordingComplete }) {
   const [recordingTime, setRecordingTime] = useState(0);
   const [remainingRecordings, setRemainingRecordings] = useState(null);
   const [amplitude, setAmplitude] = useState(0);
+  const [hasPermission, setHasPermission] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        });
+        const { status } = await Audio.requestPermissionsAsync();
+        setHasPermission(status === 'granted');
+      } catch (error) {
+        console.error('Error setting up audio:', error);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -62,7 +88,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Add useEffect to check remaining recordings
   useEffect(() => {
     const checkRemainingRecordings = async () => {
       const remaining = await usageLimit.getRemainingCount();
@@ -72,7 +97,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
     checkRemainingRecordings();
   }, []);
 
-  // Add metering interval
   useEffect(() => {
     let meterInterval;
     if (isRecording && recording) {
@@ -81,54 +105,36 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           const status = await recording.getStatusAsync();
           if (status.isRecording) {
             const { metering = 0 } = status;
-            // Normalize metering value (usually between -160 and 0) to 0-1
             const normalizedAmplitude = (metering + 160) / 160;
             setAmplitude(normalizedAmplitude);
           }
         } catch (error) {
           console.error('Error getting recording status:', error);
         }
-      }, 100); // Update every 100ms
+      }, 100);
     }
     return () => {
       if (meterInterval) clearInterval(meterInterval);
     };
   }, [isRecording, recording]);
 
-  const getPermission = async () => {
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Microphone permission is required.');
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
-      return false;
-    }
-  };
-
   const startRecording = async () => {
     try {
-      // Check if user can record
+      if (!hasPermission) {
+        alert('Microphone permission is required.');
+        return;
+      }
+
       const canRecord = await usageLimit.canRecord();
       if (!canRecord) {
         alert('You have reached your monthly recording limit. Please try again next month.');
         return;
       }
 
-      const permission = await getPermission();
-      if (!permission) return;
+      const { recording } = await Audio.Recording.createAsync(
+        Platform.select(RECORDING_OPTIONS)
+      );
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording } = await Audio.Recording.createAsync(RECORDING_OPTIONS);
-
-      // Increment usage after successful recording start
       await usageLimit.incrementUsage();
       const remaining = await usageLimit.getRemainingCount();
       setRemainingRecordings(remaining);
@@ -167,13 +173,11 @@ export default function VoiceRecorder({ onRecordingComplete }) {
 
   const processAudioFile = async (audioUri) => {
     try {
-      // Check authentication first using Zustand store
       if (!user) {
         alert('Please sign in to use voice recording features.');
         return;
       }
 
-      // Get auth data from storage for API calls
       const authData = await storage.getAuthData();
       if (!authData?.accessToken) {
         console.error('No access token found');
@@ -181,7 +185,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
         return;
       }
 
-      // Check network connectivity after auth
       const networkState = await NetInfo.fetch();
       if (!networkState.isConnected) {
         await offlineQueue.addToQueue(audioUri);
@@ -189,7 +192,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
         return;
       }
 
-      // Create FormData for audio file
       const formData = new FormData();
       formData.append('audio', {
         uri: audioUri,
@@ -199,7 +201,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
 
       const { supabaseUrl } = await storage.getSupabaseConfig();
       
-      // Send to Supabase Edge Function for transcription
       const response = await fetch(`${supabaseUrl}/functions/v1/transcribe-audio`, {
         method: 'POST',
         headers: {
@@ -215,14 +216,12 @@ export default function VoiceRecorder({ onRecordingComplete }) {
       const { transcription } = await response.json();
       
       if (transcription) {
-        // Check cache for similar transcriptions
         const cachedCleanText = await transcriptionCache.findMatch(transcription);
         
         let cleanedText;
         if (cachedCleanText) {
           cleanedText = cachedCleanText;
         } else {
-          // Clean text with GPT if no cache match
           const cleanResponse = await fetch(`${supabaseUrl}/functions/v1/clean-reminder`, {
             method: 'POST',
             headers: {
@@ -239,7 +238,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           const { cleanedText: gptCleanedText } = await cleanResponse.json();
           cleanedText = gptCleanedText;
           
-          // Add to cache
           await transcriptionCache.addToCache(transcription, cleanedText);
         }
 
@@ -251,7 +249,6 @@ export default function VoiceRecorder({ onRecordingComplete }) {
     } catch (error) {
       console.error('Transcription failed:', error);
       
-      // Only add to offline queue if it's a network error
       if (!navigator.onLine || error.name === 'TypeError') {
         await offlineQueue.addToQueue(audioUri);
         alert('Failed to process recording. It will be retried when possible.');
@@ -263,31 +260,10 @@ export default function VoiceRecorder({ onRecordingComplete }) {
     }
   };
 
-  // Add useEffect for processing offline queue
-  useEffect(() => {
-    const processOfflineQueue = async () => {
-      await offlineQueue.processQueue(onRecordingComplete);
-    };
-
-    // Process queue on mount and when network status changes
-    const unsubscribe = NetInfo.addEventListener(state => {
-      if (state.isConnected) {
-        processOfflineQueue();
-      }
-    });
-
-    // Initial process
-    processOfflineQueue();
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
   return (
     <View style={styles.container}>
       {remainingRecordings !== null && remainingRecordings < 10 && (
-        <Text style={[styles.remainingText, { color: '#000000' }]}>
+        <Text style={styles.remainingText}>
           {remainingRecordings} recordings remaining this month
         </Text>
       )}
@@ -297,10 +273,10 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           entering={FadeInUp.duration(200)}
           style={styles.recordingIndicator}
         >
-          <Text style={[styles.recordingText, { color: '#000000' }]}>
+          <Text style={styles.recordingText}>
             Recording... {recordingTime}s
           </Text>
-          <View style={[styles.pulsingDot, { backgroundColor: '#000000' }]} />
+          <View style={styles.pulsingDot} />
         </Animated.View>
       )}
 
@@ -315,7 +291,7 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           style={styles.processingIndicator}
         >
           <ActivityIndicator color="#000000" />
-          <Text style={[styles.processingText, { color: '#000000' }]}>
+          <Text style={styles.processingText}>
             Transcribing...
           </Text>
         </Animated.View>
@@ -328,7 +304,7 @@ export default function VoiceRecorder({ onRecordingComplete }) {
           { backgroundColor: isRecording ? '#FF0000' : '#000000' }
         ]}
         onPress={isRecording ? stopRecording : startRecording}
-        disabled={isProcessing}
+        disabled={isProcessing || !hasPermission}
       >
         <Feather 
           name="mic" 
@@ -346,7 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 15 : 30, // 30px above the tab bar
+    bottom: Platform.OS === 'ios' ? 15 : 30,
     left: 0,
     right: 0,
   },
@@ -354,7 +330,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#CFCFCF',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -378,6 +354,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   pulsingDot: {
     width: 8,
@@ -394,10 +371,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   remainingText: {
     fontSize: 14,
     color: '#000000',
     fontFamily: 'Nunito_800ExtraBold',
+    marginBottom: 10,
   },
 }); 

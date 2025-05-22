@@ -55,8 +55,20 @@ class Storage {
         return;
       }
 
+      // Only store essential user data
+      const essentialUserData = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        app_metadata: user.app_metadata,
+        user_metadata: {
+          email: user.user_metadata?.email,
+          email_verified: user.user_metadata?.email_verified
+        }
+      };
+
       const authData = JSON.stringify({
-        user,
+        user: essentialUserData,
         accessToken,
         timestamp: new Date().toISOString()
       });

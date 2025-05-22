@@ -15,11 +15,14 @@ export default function GoogleAuth({ onSuccess }) {
     iosClientId: Constants.expoConfig?.extra?.iosClientId,
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
     webClientId: Constants.expoConfig?.extra?.expoClientId,
+    useProxy: true
   });
 
   useEffect(() => {
     if (response?.type === 'success') {
       handleGoogleSignIn(response.authentication.accessToken);
+    } else if (response?.type === 'error') {
+      console.error('Google Sign In Response Error:', response.error);
     }
   }, [response]);
 

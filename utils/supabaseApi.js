@@ -57,7 +57,7 @@ export async function sendOtp(email) {
       },
       body: JSON.stringify({
         email,
-        type: 'signup',
+        type: 'magiclink',
         gotrue_meta_security: {},
         options: {
           data: {
@@ -105,7 +105,7 @@ export async function verifyOtp(email, token) {
       body: JSON.stringify({
         email,
         token,
-        type: 'signup',
+        type: 'magiclink',
         gotrue_meta_security: {}
       }),
     });
@@ -125,8 +125,8 @@ export async function verifyOtp(email, token) {
       };
     }
 
-    // For successful verification, we should have both user and access_token
-    if (!data.user || !data.session?.access_token) {
+    // Check if we have the required data
+    if (!data.user || !data.access_token) {
       console.error('Invalid response structure:', data);
       return {
         data: null,
@@ -139,9 +139,9 @@ export async function verifyOtp(email, token) {
       data: {
         user: data.user,
         session: {
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          expires_in: data.session.expires_in,
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in: data.expires_in,
         }
       }, 
       error: null 
