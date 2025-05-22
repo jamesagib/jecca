@@ -23,6 +23,7 @@
     "@supabase/auth-js": "^2.69.1",
     "@supabase/postgrest-js": "^1.19.4",
     "@supabase/supabase-js": "^2.49.4",
+    "@types/uuid": "^10.0.0",
     "abort-controller": "^3.0.0",
     "assert": "^2.1.0",
     "crypto-browserify": "^3.12.1",
@@ -70,6 +71,7 @@
     "stream-http": "^3.2.0",
     "text-encoding": "^0.7.0",
     "url": "^0.11.4",
+    "uuid": "^11.1.0",
     "web-streams-polyfill": "^2.1.1",
     "zustand": "^5.0.5"
   },

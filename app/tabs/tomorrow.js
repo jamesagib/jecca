@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,6 +24,7 @@ import { scheduleNotificationWithSupabase } from '../utils/notifications';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders } from '../utils/supabaseApi';
 import VoiceRecorder from '../components/VoiceRecorder';
+import { v4 as uuidv4 } from 'uuid';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -230,42 +232,35 @@ export default function TomorrowScreen() {
       // If user is logged in, save to Supabase first
       if (user && accessToken) {
         try {
-          // Add user information to tasks before saving
-          const tasksWithUser = tomorrowTasks.map(task => ({
-            ...task,
-            user_id: user.id,
-            user_email: user.email,
-            synced_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }));
+          // Find the newly added task (it will be the last one in the array)
+          const newTask = tomorrowTasks[tomorrowTasks.length - 1];
           
-          // Save directly to Supabase
-          const tasksToSave = tasksWithUser.map(task => ({
-            id: task.id,
-            title: task.title,
-            time: task.time,
-            date: task.date,
-            completed: task.completed || false,
+          // Only save the new task to Supabase
+          const taskToSave = {
+            id: newTask.id,
+            title: newTask.title,
+            time: newTask.time,
+            date: newTask.date,
+            completed: newTask.completed || false,
             user_id: user.id,
-            notification_id: task.notificationId,
+            notification_id: newTask.notificationId,
             synced_at: new Date().toISOString()
-          }));
+          };
           
           console.log('Current user:', { 
             id: user.id, 
             email: user.email,
             accessToken: accessToken?.substring(0, 10) + '...' || 'missing'
           });
-          console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
+          console.log('Saving to Supabase:', JSON.stringify(taskToSave, null, 2));
           
-          const { error: upsertError, data } = await upsertReminders(tasksToSave, accessToken);
+          const { error: upsertError, data } = await upsertReminders([taskToSave], accessToken);
           console.log('Supabase response:', { data, error: upsertError });
           
           if (upsertError) {
             console.error('Detailed error:', upsertError);
             throw upsertError;
           }
-          if (upsertError) throw upsertError;
         } catch (syncError) {
           console.error('Error saving to Supabase:', syncError);
           // Continue with local storage even if Supabase save fails
@@ -289,7 +284,7 @@ export default function TomorrowScreen() {
     const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
     
     const newTask = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       title: text.trim(),
       time: currentTime,
       date: moment().add(1, 'day').format('YYYY-MM-DD'),
@@ -371,6 +366,23 @@ export default function TomorrowScreen() {
     return null;
   };
 
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS,
+          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        });
+      } catch (error) {
+        console.error('Error setting up audio:', error);
+      }
+    };
+    setupAudio();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -444,7 +456,7 @@ export default function TomorrowScreen() {
             onRecordingComplete={async (transcribedText) => {
               // Create a new task with the transcribed text
               const newTask = {
-                id: Date.now().toString(),
+                id: uuidv4(),
                 title: transcribedText,
                 time: selectedTime,
                 date: moment().add(1, 'day').format('YYYY-MM-DD'),
