@@ -26,7 +26,19 @@
       "bundleIdentifier": "com.webcheer.jecca",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "config": {
+        "usesNonExemptEncryption": false,
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+        }
+      },
+      "associatedDomains": [],
+      "usesIcloudStorage": false,
+      "buildNumber": "1",
+      "urlScheme": [
+        "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -55,7 +67,12 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+        }
+      ]
     ],
     "notification": {
       "icon": "./assets/splash-icon.png",

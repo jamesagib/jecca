@@ -46,41 +46,113 @@ export async function signInWithGoogleIdToken(idToken) {
 
 // --- OTP AUTH (REST API) ---
 export async function sendOtp(email) {
-  const body = JSON.stringify({
-    email,
-    type: 'email', // Required for OTP code (keep this)
-  });
-  console.log('OTP Request Body:', body);
-  const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
-    method: 'POST',
-    headers: {
-      'apikey': supabaseAnonKey,
-      'Content-Type': 'application/json',
-    },
-    body,
-  });
-  const data = await res.json();
-  console.log('OTP API response:', data);
-  if (!res.ok) {
-    return { data: null, error: { message: data.error_description || data.error || 'Failed to send code.' } };
+  try {
+    console.log('Sending OTP to:', email);
+    
+    const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        type: 'signup',
+        gotrue_meta_security: {},
+        options: {
+          data: {
+            email
+          }
+        }
+      }),
+    });
+
+    const data = await res.json();
+    console.log('OTP send response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Failed to send OTP:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Failed to send code.' }
+      };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to send code.' }
+    };
   }
-  return { data, error: null };
 }
 
 export async function verifyOtp(email, token) {
-  const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
-    method: 'POST',
-    headers: {
-      'apikey': supabaseAnonKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, token, type: 'email' }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    return { data: null, error: { message: data.error_description || data.error || 'Invalid code.' } };
+  try {
+    console.log('Starting OTP verification for:', email);
+    
+    const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        token,
+        type: 'signup',
+        gotrue_meta_security: {}
+      }),
+    });
+
+    const data = await res.json();
+    console.log('Verify response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Verification failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Invalid code.' }
+      };
+    }
+
+    // For successful verification, we should have both user and access_token
+    if (!data.user || !data.session?.access_token) {
+      console.error('Invalid response structure:', data);
+      return {
+        data: null,
+        error: { message: 'Invalid response from server - missing user or token' }
+      };
+    }
+
+    // Return the data in the expected format
+    return { 
+      data: {
+        user: data.user,
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_in: data.session.expires_in,
+        }
+      }, 
+      error: null 
+    };
+  } catch (error) {
+    console.error('Error in verifyOtp:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to verify code.' }
+    };
   }
-  return { data, error: null };
 }
 
 // --- DATABASE ---
