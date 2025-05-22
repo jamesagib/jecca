@@ -76,14 +76,24 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            presentation: 'modal',
+            presentation: 'transparentModal',
             animation: 'none',
             contentStyle: {
-              backgroundColor: '#FFFFFF'
-            }
+              backgroundColor: 'transparent'
+            },
+            cardStyle: { backgroundColor: 'transparent' },
+            cardOverlayEnabled: false
           }}
         >
-          <Stack.Screen name="tabs" />
+          <Stack.Screen 
+            name="tabs"
+            options={{
+              presentation: 'card',
+              contentStyle: {
+                backgroundColor: '#FFFFFF'
+              }
+            }}
+          />
           <Stack.Screen 
             name="settings"
             options={{

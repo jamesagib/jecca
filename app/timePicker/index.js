@@ -1,41 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, ScrollView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Picker } from '@react-native-picker/picker';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS
+} from 'react-native-reanimated';
 import { storage } from '../utils/storage';
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const TIME_KEY = 'selected_time';
-
-const generateHours = () => {
-  return Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-};
-
-const generateMinutes = () => {
-  return Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-};
-
-const getCurrentTime = () => {
-  const now = new Date();
-  let currentHours = now.getHours();
-  const currentMinutes = now.getMinutes();
-  const currentPeriod = currentHours >= 12 ? 'PM' : 'AM';
-  
-  // Convert to 12-hour format
-  if (currentHours > 12) {
-    currentHours -= 12;
-  } else if (currentHours === 0) {
-    currentHours = 12;
-  }
-  
-  return {
-    hours: currentHours.toString().padStart(2, '0'),
-    minutes: currentMinutes.toString().padStart(2, '0'),
-    period: currentPeriod
-  };
-};
 
 export default function TimePickerScreen() {
   const router = useRouter();
@@ -43,7 +22,7 @@ export default function TimePickerScreen() {
   const [selectedMinute, setSelectedMinute] = useState('00');
   const [selectedPeriod, setSelectedPeriod] = useState('am');
   const [isVisible, setIsVisible] = useState(true);
-  const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     const loadTime = async () => {
@@ -59,13 +38,11 @@ export default function TimePickerScreen() {
     loadTime();
 
     // Start entrance animation
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      useNativeDriver: true,
+    translateY.value = withSpring(0, {
       damping: 20,
       mass: 1,
       stiffness: 100,
-    }).start();
+    });
   }, []);
 
   const handleSave = async () => {
@@ -75,19 +52,19 @@ export default function TimePickerScreen() {
   };
 
   const handleClose = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
+    translateY.value = withTiming(SCREEN_HEIGHT, {
       duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsVisible(false);
-      router.back();
+    }, () => {
+      runOnJS(setIsVisible)(false);
+      runOnJS(router.back)();
     });
   };
 
-  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-  const periods = ['am', 'pm'];
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
 
   if (!isVisible) return null;
 
@@ -98,8 +75,9 @@ export default function TimePickerScreen() {
       animationType="none"
       statusBarTranslucent
       onRequestClose={handleClose}
+      style={{ margin: 0 }}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={1} 
@@ -108,9 +86,7 @@ export default function TimePickerScreen() {
         <Animated.View 
           style={[
             styles.sheet,
-            { 
-              transform: [{ translateY: slideAnim }],
-            }
+            animatedStyle
           ]}
         >
           <View style={styles.handle} />
@@ -125,7 +101,7 @@ export default function TimePickerScreen() {
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >
-              {hours.map(hour => (
+              {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(hour => (
                 <Picker.Item key={hour} label={hour} value={hour} />
               ))}
             </Picker>
@@ -138,7 +114,7 @@ export default function TimePickerScreen() {
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >
-              {minutes.map(minute => (
+              {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(minute => (
                 <Picker.Item key={minute} label={minute} value={minute} />
               ))}
             </Picker>
@@ -149,7 +125,7 @@ export default function TimePickerScreen() {
               style={styles.picker}
               itemStyle={styles.pickerItem}
             >
-              {periods.map(period => (
+              {['am', 'pm'].map(period => (
                 <Picker.Item key={period} label={period} value={period} />
               ))}
             </Picker>
@@ -198,7 +174,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.55,
+    height: SCREEN_HEIGHT * 0.65,
     width: '100%',
     position: 'absolute',
     bottom: 0,
