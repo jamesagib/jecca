@@ -18,28 +18,24 @@ export default function GoogleAuth({ onSuccess }) {
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
     webClientId: Constants.expoConfig?.extra?.expoClientId,
     redirectUri: makeRedirectUri({
-      useProxy: true,
-    }),
-    useProxy: true,
-    // Production configuration will use native URIs
-    ...(Constants.appOwnership === 'standalone' && {
-      redirectUri: makeRedirectUri({
-        native: Platform.select({
-          ios: Constants.expoConfig?.ios?.bundleIdentifier,
-          android: Constants.expoConfig?.android?.package
-        })
-      }),
-      useProxy: false
+      useProxy: Constants.appOwnership !== 'standalone',
+      scheme: 'jecca'
     })
   });
 
   useEffect(() => {
     if (response?.type === 'success') {
-      console.log('Google Auth Response Success:', {
-        accessToken: response.authentication.accessToken ? 'present' : 'missing',
-        idToken: response.authentication.idToken ? 'present' : 'missing'
-      });
-      handleGoogleSignIn(response.authentication.idToken);
+      try {
+        console.log('Google Auth Response Success:', {
+          accessToken: response.authentication.accessToken ? 'present' : 'missing',
+          idToken: response.authentication.idToken ? 'present' : 'missing'
+        });
+        handleGoogleSignIn(response.authentication.idToken);
+      } catch (error) {
+        console.error('Error processing Google auth response:', error);
+        setError('Failed to process Google sign in response');
+        setLoading(false);
+      }
     } else if (response?.type === 'error') {
       console.error('Google Sign In Response Error:', response.error);
       setError('Failed to connect to Google. Please try again.');
@@ -87,8 +83,13 @@ export default function GoogleAuth({ onSuccess }) {
     <TouchableOpacity 
       style={[styles.button, loading && styles.disabled]} 
       onPress={() => {
-        setError(null);
-        promptAsync();
+        try {
+          setError(null);
+          promptAsync();
+        } catch (error) {
+          console.error('Error starting Google auth:', error);
+          setError('Failed to start Google sign in');
+        }
       }}
       disabled={loading || !request}
     >
