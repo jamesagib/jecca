@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const AUTH_STORAGE_KEY = 'auth_data';
 
@@ -59,6 +60,13 @@ class Storage {
 
   async clearAuthData() {
     await this.removeItem(AUTH_STORAGE_KEY);
+  }
+
+  async getSupabaseConfig() {
+    return {
+      supabaseUrl: Constants.expoConfig.extra.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: Constants.expoConfig.extra.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+    };
   }
 }
 

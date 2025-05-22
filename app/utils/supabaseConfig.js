@@ -1,6 +1,16 @@
+import Constants from 'expo-constants';
+
 // Supabase configuration
-export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://wpwigqaywssygbksbhfh.supabase.co';
-export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwd2lncWF5d3NzeWdia3NiaGZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MzY1MjEsImV4cCI6MjA2MzAxMjUyMX0.bo-5nIz8x_tcnMwpcEuBocz8iH2worvM8m5by0HFWYY';
+export const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
+export const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+// Export a function to get config that ensures values are available
+export function getSupabaseConfig() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase configuration is missing. Please check your environment variables.');
+  }
+  return { supabaseUrl, supabaseAnonKey };
+}
 
 // Validate configuration
 if (!supabaseUrl || !supabaseAnonKey) {

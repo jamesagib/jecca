@@ -11,6 +11,7 @@ import { useAuthStore } from '../utils/auth';
 import { useThemeStore } from '../utils/theme';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders } from '../utils/supabaseApi';
+import VoiceRecorder from '../components/VoiceRecorder';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -425,6 +426,30 @@ export default function TodayScreen() {
               </View>
             </View>
           </View>
+
+          <VoiceRecorder 
+            onRecordingComplete={async (transcribedText) => {
+              // Create a new task with the transcribed text
+              const newTask = {
+                id: Date.now().toString(),
+                title: transcribedText,
+                time: selectedTime,
+                date: moment().format('YYYY-MM-DD'),
+                completed: false
+              };
+              
+              // Add to tasks list
+              const updatedTasks = [...tasks, newTask];
+              setTasks(updatedTasks);
+              
+              // Save to storage and sync
+              await storage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
+              await syncReminders();
+              
+              // Schedule notification if needed
+              await scheduleNotification(newTask);
+            }}
+          />
         </View>
 
         <View style={styles.tabBar}>

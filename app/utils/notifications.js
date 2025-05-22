@@ -78,14 +78,18 @@ export async function registerForPushNotifications() {
 
     // Store the token in Supabase if user is logged in
     const { user, accessToken } = useAuthStore.getState();
-    if (user && accessToken && token) {
-      console.log('Saving push token to Supabase...');
-      await savePushToken(
-        user.id,
-        token,
-        Device.modelName || 'unknown',
-        accessToken
-      );
+    if (!user?.id || !accessToken) {
+      console.log('User not logged in, skipping push token storage');
+      return token;
+    }
+
+    try {
+      const deviceId = await Device.getDeviceId();
+      await savePushToken(user.id, token, deviceId, accessToken);
+      console.log('Push token saved to Supabase');
+    } catch (error) {
+      console.error('Error saving push token to Supabase:', error);
+      // Don't throw here, we still want to return the token
     }
 
     // Platform-specific setup
@@ -108,13 +112,23 @@ export async function registerForPushNotifications() {
 export async function unregisterPushNotifications() {
   try {
     const { user, accessToken } = useAuthStore.getState();
-    if (!user || !accessToken) return;
+    if (!user?.id || !accessToken) {
+      console.log('User not logged in, skipping push token deletion');
+      return;
+    }
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      console.error('Project ID not found in app config');
+      return;
+    }
 
     const token = (await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PROJECT_ID,
+      projectId,
     })).data;
 
     await deletePushToken(user.id, token, accessToken);
+    console.log('Push token deleted from Supabase');
   } catch (error) {
     console.error('Error unregistering push notifications:', error);
   }

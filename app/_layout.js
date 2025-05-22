@@ -56,7 +56,7 @@ export default function RootLayout() {
   });
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const { initialize: initializeAuth, user } = useAuthStore();
+  const { initialize: initializeAuth } = useAuthStore();
   const { initialize: initializeTheme } = useThemeStore();
   const colorScheme = useColorScheme();
 
@@ -67,17 +67,28 @@ export default function RootLayout() {
       try {
         console.log('Starting app initialization...');
         
+        // Initialize auth first and wait for it to complete
         await initializeAuth();
         console.log('Auth initialized');
         
+        // Only proceed if auth initialization is complete
+        if (!useAuthStore.getState().initialized) {
+          console.error('Auth initialization failed');
+          throw new Error('Auth initialization failed');
+        }
+
         const onboardingStatus = await storage.getItem('onboardingComplete');
         const hasCompletedOnboarding = onboardingStatus === 'true';
         console.log('Onboarding status:', hasCompletedOnboarding);
         
         setIsOnboardingComplete(hasCompletedOnboarding);
 
+        // Get the current auth state after initialization
+        const { user } = useAuthStore.getState();
+        
         if (user) {
           try {
+            // Add a small delay to ensure auth state is stable
             await new Promise(resolve => setTimeout(resolve, 1000));
             await registerForPushNotifications();
             console.log('Push notifications registered successfully');
@@ -94,6 +105,8 @@ export default function RootLayout() {
         await SplashScreen.hideAsync();
       } catch (e) {
         console.error('Error during initialization:', e);
+        // If auth failed or user is not authenticated, reset onboarding
+        const { user } = useAuthStore.getState();
         if (!user) {
           await storage.setItem('onboardingComplete', 'false');
           setIsOnboardingComplete(false);
@@ -104,7 +117,7 @@ export default function RootLayout() {
     }
 
     prepare();
-  }, [fontsLoaded, user]);
+  }, [fontsLoaded]);
 
   if (!fontsLoaded || initializing) {
     return null;
