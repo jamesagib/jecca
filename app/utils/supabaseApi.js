@@ -367,4 +367,68 @@ export async function sendOtp(email) {
       error: { message: error.message || 'Failed to send code.' }
     };
   }
+}
+
+export async function signInWithGoogleIdToken(idToken) {
+  try {
+    console.log('Starting Google sign in with Supabase...');
+    
+    // Add timeout to the fetch request
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token&provider=google`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        provider: 'google',
+        id_token: idToken,
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    const data = await res.json();
+    console.log('Supabase Google sign in response:', {
+      status: res.status,
+      ok: res.ok,
+      error: data.error,
+      error_description: data.error_description
+    });
+
+    if (!res.ok) {
+      console.error('Supabase Google sign in failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Failed to sign in with Google' }
+      };
+    }
+
+    // Validate response data
+    if (!data.user || !data.access_token) {
+      console.error('Invalid response structure from Supabase:', data);
+      return {
+        data: null,
+        error: { message: 'Invalid response from server - missing user or token' }
+      };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error in Google sign in:', error);
+    if (error.name === 'AbortError') {
+      return { 
+        data: null, 
+        error: { message: 'Sign in request timed out. Please try again.' }
+      };
+    }
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to sign in with Google' }
+    };
+  }
 } 

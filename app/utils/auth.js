@@ -65,13 +65,24 @@ const useAuthStore = create((set) => ({
   signInWithGoogle: async (idToken) => {
     set({ loading: true, error: null });
     try {
-      console.log(makeRedirectUri({ useProxy: true }));
+      const redirectUri = makeRedirectUri({ 
+        useProxy: true,
+        scheme: 'jecca'
+      });
+      console.log('Using redirect URI:', redirectUri);
+      
       const data = await signInWithGoogleIdToken(idToken);
       if (data.error) throw new Error(data.error.message);
+      
+      if (!data.user || !data.access_token) {
+        throw new Error('Invalid response from Supabase - missing user or token');
+      }
+      
       await storage.saveAuthData(data.user, data.access_token);
       set({ user: data.user, accessToken: data.access_token, loading: false });
       return data;
     } catch (error) {
+      console.error('Error in signInWithGoogle:', error);
       set({ error: error.message, loading: false });
       return null;
     }
