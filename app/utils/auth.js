@@ -186,17 +186,34 @@ const useAuthStore = create((set) => ({
     try {
       const { data, error } = await verifyOtp(email, token);
       if (error) throw new Error(error.message || 'Invalid code.');
-      await storage.saveAuthData(data.user, data.session?.access_token);
+      
+      // Ensure we have both user and access_token
+      if (!data?.user || !data?.session?.access_token) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Save auth data first
+      await storage.saveAuthData(data.user, data.session.access_token);
+
+      // Then update state
       set({ 
         user: data.user, 
-        accessToken: data.session?.access_token, 
+        accessToken: data.session.access_token, 
         loading: false, 
         otpSent: false, 
-        otpEmail: '' 
+        otpEmail: '',
+        error: null 
       });
+
       return { data };
     } catch (error) {
-      set({ error: error.message || 'Invalid code.', loading: false });
+      console.error('Error in verifyOtp:', error);
+      set({ 
+        error: error.message || 'Invalid code.', 
+        loading: false,
+        user: null,
+        accessToken: null
+      });
       return null;
     }
   },

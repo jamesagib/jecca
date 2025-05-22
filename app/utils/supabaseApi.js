@@ -217,4 +217,114 @@ export async function deleteReminder(reminderId, userId, accessToken) {
     console.error('Error deleting reminder:', error);
     return { data: null, error };
   }
+}
+
+export async function verifyOtp(email, token) {
+  try {
+    console.log('Starting OTP verification for:', email);
+    
+    const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        token,
+        type: 'signup', // Use signup type for new users
+        gotrue_meta_security: {}
+      }),
+    });
+
+    const data = await res.json();
+    console.log('Verify response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Verification failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Invalid code.' }
+      };
+    }
+
+    // For successful verification, we should have both user and access_token
+    if (!data.user || !data.access_token) {
+      console.error('Invalid response structure:', data);
+      return {
+        data: null,
+        error: { message: 'Invalid response from server - missing user or token' }
+      };
+    }
+
+    // Return the data in the expected format
+    return { 
+      data: {
+        user: data.user,
+        session: {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in: data.expires_in,
+        }
+      }, 
+      error: null 
+    };
+  } catch (error) {
+    console.error('Error in verifyOtp:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to verify code.' }
+    };
+  }
+}
+
+export async function sendOtp(email) {
+  try {
+    console.log('Sending OTP to:', email);
+    
+    const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        type: 'signup',
+        gotrue_meta_security: {},
+        options: {
+          data: {
+            email
+          }
+        }
+      }),
+    });
+
+    const data = await res.json();
+    console.log('OTP send response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Failed to send OTP:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Failed to send code.' }
+      };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to send code.' }
+    };
+  }
 } 

@@ -47,8 +47,11 @@ class Storage {
   // Auth-specific methods
   async saveAuthData(user, accessToken) {
     try {
-      if (!user || !accessToken) {
-        console.warn('Attempted to save invalid auth data:', { hasUser: !!user, hasToken: !!accessToken });
+      if (!user?.id || !accessToken) {
+        console.warn('Invalid auth data:', { 
+          hasUserId: !!user?.id, 
+          hasToken: !!accessToken 
+        });
         return;
       }
 
@@ -62,7 +65,7 @@ class Storage {
       
       console.log('Auth data saved successfully:', {
         userId: user.id,
-        tokenPreview: accessToken.substring(0, 10) + '...',
+        tokenPreview: `${accessToken.substring(0, 10)}...`,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -79,22 +82,41 @@ class Storage {
         return null;
       }
       
-      const parsedData = JSON.parse(authData);
+      let parsedData;
+      try {
+        parsedData = JSON.parse(authData);
+      } catch (e) {
+        console.error('Failed to parse auth data:', e);
+        await this.clearAuthData();
+        return null;
+      }
       
       // Validate the structure of the auth data
-      if (!parsedData.user?.id || !parsedData.accessToken) {
-        console.warn('Invalid auth data structure found:', {
-          hasUser: !!parsedData.user,
-          hasUserId: !!parsedData.user?.id,
-          hasToken: !!parsedData.accessToken
+      if (!parsedData?.user?.id || !parsedData?.accessToken) {
+        console.warn('Invalid auth data structure:', {
+          hasUser: !!parsedData?.user,
+          hasUserId: !!parsedData?.user?.id,
+          hasToken: !!parsedData?.accessToken
         });
         await this.clearAuthData();
         return null;
       }
 
-      console.log('Retrieved auth data:', {
+      // Check if the token has expired (if we have expiry info)
+      if (parsedData.timestamp) {
+        const tokenAge = Date.now() - new Date(parsedData.timestamp).getTime();
+        const MAX_TOKEN_AGE = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (tokenAge > MAX_TOKEN_AGE) {
+          console.log('Auth token has expired');
+          await this.clearAuthData();
+          return null;
+        }
+      }
+
+      console.log('Retrieved valid auth data:', {
         userId: parsedData.user.id,
-        tokenPreview: parsedData.accessToken.substring(0, 10) + '...',
+        tokenPreview: `${parsedData.accessToken.substring(0, 10)}...`,
         timestamp: parsedData.timestamp
       });
       
