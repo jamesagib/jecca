@@ -414,11 +414,17 @@ export default function TomorrowScreen() {
                   onLongPress={() => handleDelete(task.id)}
                 >
                   <View style={styles.taskTextContainer}>
-                    <Text style={styles.taskText}>
+                    <Text style={[
+                      styles.taskText,
+                      { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                    ]}>
                       {task.title}
                     </Text>
                     <View style={styles.timeContainer}>
-                      <Text style={styles.timeText}>
+                      <Text style={[
+                        styles.timeText,
+                        { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                      ]}>
                         {task.time}
                       </Text>
                     </View>
@@ -442,7 +448,7 @@ export default function TomorrowScreen() {
                   style={styles.timeContainer}
                   onPress={() => router.push('/timePicker')}
                 >
-                  <Text style={styles.timeText}>
+                  <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
                     {selectedTime}
                   </Text>
                 </TouchableOpacity>

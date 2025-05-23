@@ -39,7 +39,7 @@ export default function TimePickerScreen() {
     // Start entrance animation
     translateY.value = withSpring(0, {
       damping: 20,
-      mass: 1,
+      mass: 0.7,
       stiffness: 100,
     });
   }, []);
