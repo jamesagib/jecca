@@ -84,8 +84,14 @@ const useAuthStore = create((set) => ({
       const { supabaseUrl, supabaseAnonKey } = await storage.getSupabaseConfig();
       
       if (!supabaseUrl || !supabaseAnonKey) {
-        console.error('Missing Supabase configuration');
-        throw new Error('Missing Supabase configuration');
+        console.log('Missing Supabase configuration, proceeding in offline mode');
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+        return;
       }
 
       // Validate the token by making a test API call
@@ -118,12 +124,24 @@ const useAuthStore = create((set) => ({
           });
           return;
         } else {
-          console.log('Auth token validation failed, clearing auth data');
-          throw new Error('Token validation failed');
+          console.log('Auth token validation failed, proceeding with stored data');
+          set({ 
+            user: authData.user,
+            accessToken: authData.accessToken,
+            loading: false,
+            initialized: true
+          });
+          return;
         }
       } catch (error) {
-        console.error('Error validating auth token:', error);
-        throw error;
+        console.error('Error validating auth token, proceeding with stored data:', error);
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+        return;
       }
     } catch (error) {
       console.error('Error initializing auth:', error);

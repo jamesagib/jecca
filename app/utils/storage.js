@@ -11,7 +11,12 @@ class Storage {
         const value = localStorage.getItem(key);
         return value;
       }
-      return await SecureStore.getItemAsync(key);
+      try {
+        return await SecureStore.getItemAsync(key);
+      } catch (secureStoreError) {
+        console.warn(`SecureStore error for ${key}, falling back to null:`, secureStoreError);
+        return null;
+      }
     } catch (error) {
       console.error(`Error reading item ${key}:`, error);
       return null;
@@ -24,10 +29,15 @@ class Storage {
         localStorage.setItem(key, value);
         return;
       }
-      await SecureStore.setItemAsync(key, value);
+      try {
+        await SecureStore.setItemAsync(key, value);
+      } catch (secureStoreError) {
+        console.warn(`SecureStore error for ${key}, operation failed:`, secureStoreError);
+        // Don't throw, just log the error
+      }
     } catch (error) {
       console.error(`Error setting item ${key}:`, error);
-      throw error;
+      // Don't throw, just log the error
     }
   }
 
@@ -151,20 +161,33 @@ class Storage {
   }
 
   async getSupabaseConfig() {
-    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    try {
+      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing Supabase configuration:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseAnonKey
-      });
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.warn('Missing Supabase configuration:', {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseAnonKey
+        });
+        // Instead of failing, return null values and let the app handle offline mode
+        return {
+          supabaseUrl: null,
+          supabaseAnonKey: null
+        };
+      }
+
+      return {
+        supabaseUrl,
+        supabaseAnonKey
+      };
+    } catch (error) {
+      console.error('Error getting Supabase config:', error);
+      return {
+        supabaseUrl: null,
+        supabaseAnonKey: null
+      };
     }
-
-    return {
-      supabaseUrl,
-      supabaseAnonKey
-    };
   }
 }
 

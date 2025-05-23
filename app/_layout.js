@@ -12,7 +12,7 @@ import { registerForPushNotifications } from './utils/notifications';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Nunito_800ExtraBold,
   });
   const [initializing, setInitializing] = useState(true);
@@ -22,41 +22,62 @@ export default function RootLayout() {
   const prepare = useCallback(async () => {
     try {
       // Initialize auth state
-      await initializeAuth();
+      await initializeAuth().catch(error => {
+        console.warn('Auth initialization error:', error);
+        // Continue even if auth fails
+      });
       
       // Check if onboarding is complete
-      const onboardingComplete = await storage.getItem('onboardingComplete');
-      setIsOnboardingComplete(onboardingComplete === 'true');
-      
-      // Register for push notifications if needed
-      await registerForPushNotifications();
-      
-      // Sync reminders
-      await syncReminders();
-      
-      setInitializing(false);
-      await SplashScreen.hideAsync();
-    } catch (e) {
-      console.error('Error during initialization:', e);
-      // If auth failed or user is not authenticated, reset onboarding
-      const currentUser = useAuthStore.getState().user;
-      if (!currentUser) {
-        await storage.setItem('onboardingComplete', 'false');
+      try {
+        const onboardingComplete = await storage.getItem('onboardingComplete');
+        setIsOnboardingComplete(onboardingComplete === 'true');
+      } catch (error) {
+        console.warn('Error checking onboarding status:', error);
+        // Default to showing onboarding if we can't check status
         setIsOnboardingComplete(false);
       }
+      
+      // Register for push notifications if needed
+      await registerForPushNotifications().catch(error => {
+        console.warn('Push notification registration error:', error);
+        // Continue even if push registration fails
+      });
+      
+      // Sync reminders
+      await syncReminders().catch(error => {
+        console.warn('Reminder sync error:', error);
+        // Continue even if sync fails
+      });
+    } catch (e) {
+      console.error('Error during initialization:', e);
+    } finally {
+      // Always hide splash screen and complete initialization
       setInitializing(false);
-      await SplashScreen.hideAsync();
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.warn('Error hiding splash screen:', error);
+      }
     }
   }, [initializeAuth]);
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       prepare();
     }
-  }, [fontsLoaded, prepare]);
+  }, [fontsLoaded, fontError, prepare]);
 
-  if (!fontsLoaded || initializing) {
-    return null;
+  // If we have a font error, continue without the custom font
+  if (!fontsLoaded && !fontError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+    );
+  }
+
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+    );
   }
 
   return (
