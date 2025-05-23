@@ -18,9 +18,9 @@ const TIME_KEY = 'selected_time';
 
 const getCurrentTimeComponents = () => {
   const now = moment();
-  const hour = now.format('h'); // 12-hour format
-  const minute = now.format('mm');
-  const period = now.format('a'); // 'am' or 'pm'
+  const hour = now.format('h'); // 12-hour format without leading zero
+  const minute = now.format('mm'); // minutes with leading zero
+  const period = now.format('a').toLowerCase(); // 'am' or 'pm' in lowercase
   return { hour, minute, period };
 };
 
