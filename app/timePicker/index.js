@@ -1,15 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Picker } from '@react-native-picker/picker';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming,
-  runOnJS
-} from 'react-native-reanimated';
 import { storage } from '../utils/storage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -21,8 +14,6 @@ export default function TimePickerScreen() {
   const [selectedHour, setSelectedHour] = useState('7');
   const [selectedMinute, setSelectedMinute] = useState('00');
   const [selectedPeriod, setSelectedPeriod] = useState('am');
-  const [isVisible, setIsVisible] = useState(true);
-  const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     const loadTime = async () => {
@@ -36,125 +27,87 @@ export default function TimePickerScreen() {
       }
     };
     loadTime();
-
-    // Start entrance animation
-    translateY.value = withSpring(0, {
-      damping: 20,
-      mass: 1,
-      stiffness: 100,
-    });
   }, []);
 
   const handleSave = async () => {
     const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
     await storage.setItem(TIME_KEY, formattedTime);
-    handleClose();
+    router.back();
   };
-
-  const handleClose = () => {
-    translateY.value = withTiming(SCREEN_HEIGHT, {
-      duration: 250,
-    }, () => {
-      runOnJS(setIsVisible)(false);
-      runOnJS(router.back)();
-    });
-  };
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
-
-  if (!isVisible) return null;
 
   return (
-    <Modal
-      transparent
-      visible={isVisible}
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={handleClose}
-      style={{ margin: 0 }}
-    >
-      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={handleClose}
-        />
-        <Animated.View 
-          style={[
-            styles.sheet,
-            animatedStyle
-          ]}
-        >
-          <View style={styles.handle} />
-          <Text style={styles.title}>
-            select time
-          </Text>
+    <View style={styles.container}>
+      <TouchableOpacity 
+        style={styles.backdrop} 
+        activeOpacity={1} 
+        onPress={() => router.back()}
+      />
+      <View style={styles.sheet}>
+        <View style={styles.handle} />
+        <Text style={styles.title}>
+          select time
+        </Text>
 
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedHour}
-              onValueChange={setSelectedHour}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(hour => (
-                <Picker.Item key={hour} label={hour} value={hour} />
-              ))}
-            </Picker>
-
-            <Text style={styles.pickerSeparator}>:</Text>
-
-            <Picker
-              selectedValue={selectedMinute}
-              onValueChange={setSelectedMinute}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(minute => (
-                <Picker.Item key={minute} label={minute} value={minute} />
-              ))}
-            </Picker>
-
-            <Picker
-              selectedValue={selectedPeriod}
-              onValueChange={setSelectedPeriod}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {['am', 'pm'].map(period => (
-                <Picker.Item key={period} label={period} value={period} />
-              ))}
-            </Picker>
-          </View>
-
-          <View style={styles.presetContainer}>
-            {['7:00am', '8:00am', '9:00am', '12:00pm', '3:00pm', '6:00pm'].map(time => (
-              <TouchableOpacity
-                key={time}
-                style={styles.presetButton}
-                onPress={async () => {
-                  await storage.setItem(TIME_KEY, time);
-                  handleClose();
-                }}
-              >
-                <Text style={styles.timeText}>{time}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedHour}
+            onValueChange={setSelectedHour}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
           >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
-        </Animated.View>
+            {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(hour => (
+              <Picker.Item key={hour} label={hour} value={hour} />
+            ))}
+          </Picker>
+
+          <Text style={styles.pickerSeparator}>:</Text>
+
+          <Picker
+            selectedValue={selectedMinute}
+            onValueChange={setSelectedMinute}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(minute => (
+              <Picker.Item key={minute} label={minute} value={minute} />
+            ))}
+          </Picker>
+
+          <Picker
+            selectedValue={selectedPeriod}
+            onValueChange={setSelectedPeriod}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            {['am', 'pm'].map(period => (
+              <Picker.Item key={period} label={period} value={period} />
+            ))}
+          </Picker>
+        </View>
+
+        <View style={styles.presetContainer}>
+          {['7:00am', '8:00am', '9:00am', '12:00pm', '3:00pm', '6:00pm'].map(time => (
+            <TouchableOpacity
+              key={time}
+              style={styles.presetButton}
+              onPress={async () => {
+                await storage.setItem(TIME_KEY, time);
+                router.back();
+              }}
+            >
+              <Text style={styles.timeText}>{time}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSave}
+        >
+          <Text style={styles.saveButtonText}>Save</Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </View>
   );
 }
 
@@ -176,10 +129,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     height: SCREEN_HEIGHT * 0.65,
     width: '100%',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   handle: {
     width: 40,

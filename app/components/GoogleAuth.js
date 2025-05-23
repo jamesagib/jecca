@@ -81,21 +81,16 @@ export default function GoogleAuth({ onSuccess }) {
 
   return (
     <TouchableOpacity 
-      style={[styles.button, loading && styles.disabled]} 
+      style={[styles.button, styles.disabled]} 
       onPress={() => {
-        try {
-          setError(null);
-          promptAsync();
-        } catch (error) {
-          console.error('Error starting Google auth:', error);
-          setError('Failed to start Google sign in');
-        }
+        Alert.alert(
+          'Coming Soon',
+          'Google sign-in will be available in the next update!',
+          [{ text: 'OK' }]
+        );
       }}
-      disabled={loading || !request}
     >
-      <Text style={styles.buttonText}>
-        {loading ? 'Signing in...' : 'Continue with Google'}
-      </Text>
+      <Text style={styles.buttonText}>Continue with Google (Coming Soon)</Text>
     </TouchableOpacity>
   );
 }
