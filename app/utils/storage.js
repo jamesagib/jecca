@@ -8,17 +8,10 @@ class Storage {
   async getItem(key) {
     try {
       if (Platform.OS === 'web') {
-        const value = localStorage.getItem(key);
-        return value;
+        return localStorage.getItem(key);
       }
-      try {
-        return await SecureStore.getItemAsync(key);
-      } catch (secureStoreError) {
-        console.warn(`SecureStore error for ${key}, falling back to null:`, secureStoreError);
-        return null;
-      }
+      return await SecureStore.getItemAsync(key).catch(() => null);
     } catch (error) {
-      console.error(`Error reading item ${key}:`, error);
       return null;
     }
   }
@@ -29,15 +22,9 @@ class Storage {
         localStorage.setItem(key, value);
         return;
       }
-      try {
-        await SecureStore.setItemAsync(key, value);
-      } catch (secureStoreError) {
-        console.warn(`SecureStore error for ${key}, operation failed:`, secureStoreError);
-        // Don't throw, just log the error
-      }
+      await SecureStore.setItemAsync(key, value).catch(() => {});
     } catch (error) {
-      console.error(`Error setting item ${key}:`, error);
-      // Don't throw, just log the error
+      // Silently fail but don't crash
     }
   }
 
@@ -47,25 +34,17 @@ class Storage {
         localStorage.removeItem(key);
         return;
       }
-      await SecureStore.deleteItemAsync(key);
+      await SecureStore.deleteItemAsync(key).catch(() => {});
     } catch (error) {
-      console.error(`Error removing item ${key}:`, error);
-      throw error;
+      // Silently fail but don't crash
     }
   }
 
   // Auth-specific methods
   async saveAuthData(user, accessToken) {
     try {
-      if (!user?.id || !accessToken) {
-        console.warn('Invalid auth data:', { 
-          hasUserId: !!user?.id, 
-          hasToken: !!accessToken 
-        });
-        return;
-      }
+      if (!user?.id || !accessToken) return;
 
-      // Only store essential user data
       const essentialUserData = {
         id: user.id,
         email: user.email,
@@ -84,67 +63,35 @@ class Storage {
       });
 
       await this.setItem(AUTH_STORAGE_KEY, authData);
-      
-      console.log('Auth data saved successfully:', {
-        userId: user.id,
-        tokenPreview: `${accessToken.substring(0, 10)}...`,
-        timestamp: new Date().toISOString()
-      });
     } catch (error) {
-      console.error('Error saving auth data:', error);
-      throw error;
+      // Silently fail but don't crash
     }
   }
 
   async getAuthData() {
     try {
       const authData = await this.getItem(AUTH_STORAGE_KEY);
-      if (!authData) {
-        console.log('No auth data found in storage');
-        return null;
-      }
+      if (!authData) return null;
       
-      let parsedData;
-      try {
-        parsedData = JSON.parse(authData);
-      } catch (e) {
-        console.error('Failed to parse auth data:', e);
-        await this.clearAuthData();
-        return null;
-      }
+      const parsedData = JSON.parse(authData);
       
-      // Validate the structure of the auth data
       if (!parsedData?.user?.id || !parsedData?.accessToken) {
-        console.warn('Invalid auth data structure:', {
-          hasUser: !!parsedData?.user,
-          hasUserId: !!parsedData?.user?.id,
-          hasToken: !!parsedData?.accessToken
-        });
         await this.clearAuthData();
         return null;
       }
 
-      // Check if the token has expired (if we have expiry info)
       if (parsedData.timestamp) {
         const tokenAge = Date.now() - new Date(parsedData.timestamp).getTime();
         const MAX_TOKEN_AGE = 24 * 60 * 60 * 1000; // 24 hours
         
         if (tokenAge > MAX_TOKEN_AGE) {
-          console.log('Auth token has expired');
           await this.clearAuthData();
           return null;
         }
       }
-
-      console.log('Retrieved valid auth data:', {
-        userId: parsedData.user.id,
-        tokenPreview: `${parsedData.accessToken.substring(0, 10)}...`,
-        timestamp: parsedData.timestamp
-      });
       
       return parsedData;
     } catch (error) {
-      console.error('Error reading auth data:', error);
       await this.clearAuthData();
       return null;
     }
@@ -153,10 +100,8 @@ class Storage {
   async clearAuthData() {
     try {
       await this.removeItem(AUTH_STORAGE_KEY);
-      console.log('Auth data cleared successfully');
     } catch (error) {
-      console.error('Error clearing auth data:', error);
-      throw error;
+      // Silently fail but don't crash
     }
   }
 

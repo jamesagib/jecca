@@ -9,6 +9,7 @@
     "newArchEnabled": false,
     "scheme": "jecca",
     "deepLinking": true,
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

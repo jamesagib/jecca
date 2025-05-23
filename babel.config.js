@@ -8,9 +8,10 @@ module.exports = function (api) {
       [
         'module-resolver',
         {
-          root: ['./'],
+          root: ['./app'],
           extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
           alias: {
+            '@': './app',
             'stream': 'stream-browserify',
             'crypto': 'crypto-browserify',
             'http': 'stream-http',
@@ -20,7 +21,6 @@ module.exports = function (api) {
             'assert': 'assert',
             'net': false,
             'tls': false,
-            '@/*': ['./app/*'],
           },
         },
       ],
