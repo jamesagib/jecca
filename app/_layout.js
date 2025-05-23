@@ -10,10 +10,7 @@ import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
 
 // Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // Preventing splash screen from auto-hiding might fail in Expo Go
-  console.warn('Error preventing splash screen auto-hide');
-});
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -24,102 +21,62 @@ export default function RootLayout() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const initializeAuth = useAuthStore(state => state.initialize);
 
-  const prepare = useCallback(async () => {
-    try {
-      console.log('Starting app initialization');
-      
-      // Initialize auth state with retry
-      let authInitialized = false;
-      let retryCount = 0;
-      while (!authInitialized && retryCount < 3) {
-        try {
-          await initializeAuth();
-          authInitialized = true;
-        } catch (error) {
-          console.warn(`Auth initialization attempt ${retryCount + 1} failed:`, error);
-          retryCount++;
-          if (retryCount < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Initialize auth state with retry
+        let retryCount = 0;
+        while (retryCount < 3) {
+          try {
+            await initializeAuth();
+            break;
+          } catch (error) {
+            retryCount++;
+            if (retryCount < 3) await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
-      }
-      
-      if (!authInitialized) {
-        console.error('Auth initialization failed after retries');
-      }
-      
-      // Check if onboarding is complete
-      try {
+        
+        // Check if onboarding is complete
         const onboardingComplete = await storage.getItem('onboardingComplete');
         setIsOnboardingComplete(onboardingComplete === 'true');
-      } catch (error) {
-        console.warn('Error checking onboarding status:', error);
-        // Default to showing onboarding if we can't check status
-        setIsOnboardingComplete(false);
-      }
-      
-      // Register for push notifications if needed
-      try {
-        await registerForPushNotifications();
-      } catch (error) {
-        console.warn('Push notification registration error:', error);
-      }
-      
-      // Sync reminders
-      try {
-        await syncReminders();
-      } catch (error) {
-        console.warn('Reminder sync error:', error);
-      }
-    } catch (e) {
-      console.error('Error during initialization:', e);
-      setError(e.message || 'An error occurred during initialization');
-    } finally {
-      setInitializing(false);
-      // Hide splash screen after everything is ready
-      try {
-        await SplashScreen.hideAsync();
-      } catch (error) {
-        console.warn('Error hiding splash screen:', error);
+        
+        // Initialize other features
+        await Promise.all([
+          registerForPushNotifications().catch(() => {}),
+          syncReminders().catch(() => {})
+        ]);
+      } catch (e) {
+        setError('An error occurred during initialization');
+      } finally {
+        setInitializing(false);
+        await SplashScreen.hideAsync().catch(() => {});
       }
     }
-  }, [initializeAuth]);
 
-  useEffect(() => {
     if (fontsLoaded || fontError) {
       prepare();
     }
-  }, [fontsLoaded, fontError, prepare]);
+  }, [fontsLoaded, fontError, initializeAuth]);
 
-  // Show error screen if there's an error
   if (error) {
     return (
       <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text style={{ fontSize: 18, color: '#000000', marginBottom: 20, textAlign: 'center' }}>
-          Something went wrong. Please try restarting the app.
-        </Text>
-        <Text style={{ fontSize: 14, color: '#666666', textAlign: 'center' }}>
+        <Text style={{ fontSize: 18, color: '#000000', textAlign: 'center' }}>
           {error}
         </Text>
       </View>
     );
   }
 
-  // Show a loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, color: '#000000' }}>Loading...</Text>
-      </View>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
     );
   }
 
-  // Show a loading screen while initializing
   if (initializing) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, color: '#000000' }}>Initializing...</Text>
-      </View>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
     );
   }
 

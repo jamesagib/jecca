@@ -28,6 +28,79 @@ const useAuthStore = create((set) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
 
+  initialize: async () => {
+    try {
+      set({ loading: true });
+      
+      // Get auth data from storage
+      const authData = await storage.getAuthData();
+      
+      if (!authData?.user?.id || !authData?.accessToken) {
+        await storage.clearAuthData();
+        set({ 
+          user: null,
+          accessToken: null,
+          loading: false, 
+          initialized: true 
+        });
+        return;
+      }
+
+      // Get Supabase config
+      const supabaseConfig = await storage.getSupabaseConfig();
+      
+      if (!supabaseConfig?.supabaseUrl || !supabaseConfig?.supabaseAnonKey) {
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+        return;
+      }
+
+      // Validate the token
+      const response = await fetch(`${supabaseConfig.supabaseUrl}/auth/v1/user`, {
+        headers: {
+          'Authorization': `Bearer ${authData.accessToken}`,
+          'apikey': supabaseConfig.supabaseAnonKey
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        const updatedUser = {
+          ...authData.user,
+          ...userData,
+        };
+        
+        await storage.saveAuthData(updatedUser, authData.accessToken);
+        set({ 
+          user: updatedUser, 
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true 
+        });
+      } else {
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+      }
+    } catch (error) {
+      await storage.clearAuthData();
+      set({ 
+        user: null,
+        accessToken: null,
+        loading: false, 
+        initialized: true,
+        error: error.message 
+      });
+    }
+  },
+
   signIn: async (email, password) => {
     set({ loading: true, error: null });
     try {
@@ -59,133 +132,6 @@ const useAuthStore = create((set) => ({
   signOut: async () => {
     await storage.clearAuthData();
     set({ user: null, accessToken: null });
-  },
-
-  initialize: async () => {
-    try {
-      console.log('Starting auth initialization');
-      set({ loading: true });
-      
-      // Get auth data from storage
-      let authData = null;
-      try {
-        authData = await storage.getAuthData();
-        console.log('Auth data loaded:', { 
-          hasUser: !!authData?.user, 
-          hasToken: !!authData?.accessToken 
-        });
-      } catch (storageError) {
-        console.warn('Error loading auth data:', storageError);
-      }
-      
-      if (!authData?.user?.id || !authData?.accessToken) {
-        console.log('No valid auth data found during initialization');
-        try {
-          await storage.clearAuthData();
-        } catch (clearError) {
-          console.warn('Error clearing auth data:', clearError);
-        }
-        set({ 
-          user: null,
-          accessToken: null,
-          loading: false, 
-          initialized: true 
-        });
-        return;
-      }
-
-      // Get Supabase config
-      let supabaseConfig = null;
-      try {
-        supabaseConfig = await storage.getSupabaseConfig();
-        console.log('Supabase config loaded:', { 
-          hasUrl: !!supabaseConfig?.supabaseUrl, 
-          hasKey: !!supabaseConfig?.supabaseAnonKey 
-        });
-      } catch (configError) {
-        console.warn('Error loading Supabase config:', configError);
-      }
-      
-      if (!supabaseConfig?.supabaseUrl || !supabaseConfig?.supabaseAnonKey) {
-        console.log('Missing Supabase configuration, proceeding in offline mode');
-        set({ 
-          user: authData.user,
-          accessToken: authData.accessToken,
-          loading: false,
-          initialized: true
-        });
-        return;
-      }
-
-      // Validate the token by making a test API call
-      try {
-        console.log('Attempting to validate auth token');
-        const response = await fetch(`${supabaseConfig.supabaseUrl}/auth/v1/user`, {
-          headers: {
-            'Authorization': `Bearer ${authData.accessToken}`,
-            'apikey': supabaseConfig.supabaseAnonKey
-          }
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('Auth token validated successfully');
-          
-          // Update user data with latest from server
-          const updatedUser = {
-            ...authData.user,
-            ...userData,
-          };
-          
-          // Save updated user data
-          try {
-            await storage.saveAuthData(updatedUser, authData.accessToken);
-          } catch (saveError) {
-            console.warn('Error saving updated auth data:', saveError);
-          }
-          
-          set({ 
-            user: updatedUser, 
-            accessToken: authData.accessToken,
-            loading: false,
-            initialized: true 
-          });
-          return;
-        } else {
-          console.log('Auth token validation failed, proceeding with stored data');
-          set({ 
-            user: authData.user,
-            accessToken: authData.accessToken,
-            loading: false,
-            initialized: true
-          });
-          return;
-        }
-      } catch (validationError) {
-        console.error('Error validating auth token, proceeding with stored data:', validationError);
-        set({ 
-          user: authData.user,
-          accessToken: authData.accessToken,
-          loading: false,
-          initialized: true
-        });
-        return;
-      }
-    } catch (error) {
-      console.error('Fatal error in auth initialization:', error);
-      try {
-        await storage.clearAuthData();
-      } catch (clearError) {
-        console.warn('Error clearing auth data after fatal error:', clearError);
-      }
-      set({ 
-        user: null,
-        accessToken: null,
-        loading: false, 
-        initialized: true,
-        error: error.message 
-      });
-    }
   },
 
   handleAuthStateChange: ({ event, session }) => {
