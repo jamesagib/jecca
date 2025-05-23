@@ -22,7 +22,7 @@ import { storage } from '../utils/storage';
 import { useAuthStore } from '../utils/auth';
 import { scheduleNotificationWithSupabase } from '../utils/notifications';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
-import { upsertReminders } from '../utils/supabaseApi';
+import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
 // import VoiceRecorder from '../components/VoiceRecorder';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -82,6 +82,13 @@ export default function TomorrowScreen() {
   useFocusEffect(
     useCallback(() => {
       const updateState = async () => {
+        const { user, accessToken } = useAuthStore.getState();
+        
+        // Clean up reminders if user is logged in
+        if (user && accessToken) {
+          await cleanupReminders(user.id, accessToken);
+        }
+        
         // Update time
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
@@ -391,7 +398,7 @@ export default function TomorrowScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.dateText}>
-              {moment().add(1, 'day').format('ddd. MMM D').toLowerCase()}
+              {moment().add(1, 'day').format('dddd MMM D').toLowerCase()}
             </Text>
             <TouchableOpacity
               style={styles.settingsButton}

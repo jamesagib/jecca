@@ -431,4 +431,34 @@ export async function signInWithGoogleIdToken(idToken) {
       error: { message: error.message || 'Failed to sign in with Google' }
     };
   }
+}
+
+export async function cleanupReminders(userId, accessToken) {
+  try {
+    const timezone = moment.tz.guess(); // Get user's timezone
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/cleanup-reminders`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          timezone: timezone
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to cleanup reminders');
+    }
+
+    return { data: await res.json(), error: null };
+  } catch (error) {
+    console.error('Error cleaning up reminders:', error);
+    return { data: null, error };
+  }
 } 

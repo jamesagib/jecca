@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { storage } from './utils/storage';
+import moment from 'moment';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -15,11 +16,20 @@ import Animated, {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TIME_KEY = 'selected_time';
 
+const getCurrentTimeComponents = () => {
+  const now = moment();
+  const hour = now.format('h'); // 12-hour format
+  const minute = now.format('mm');
+  const period = now.format('a'); // 'am' or 'pm'
+  return { hour, minute, period };
+};
+
 export default function TimePickerScreen() {
   const router = useRouter();
-  const [selectedHour, setSelectedHour] = useState('7');
-  const [selectedMinute, setSelectedMinute] = useState('00');
-  const [selectedPeriod, setSelectedPeriod] = useState('am');
+  const { hour, minute, period } = getCurrentTimeComponents();
+  const [selectedHour, setSelectedHour] = useState(hour);
+  const [selectedMinute, setSelectedMinute] = useState(minute);
+  const [selectedPeriod, setSelectedPeriod] = useState(period);
   const [isVisible, setIsVisible] = useState(true);
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
@@ -33,6 +43,7 @@ export default function TimePickerScreen() {
         setSelectedMinute(minute);
         setSelectedPeriod(period);
       }
+      // If no stored time, keep the current time we set in initial state
     };
     loadTime();
 
