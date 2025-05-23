@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Dimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import Animated, { 
@@ -133,6 +133,13 @@ export default function SettingsScreen() {
           >
             <Text style={styles.signOutText}>sign out</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.creditLink}
+            onPress={() => Linking.openURL('https://x.com/@agibjames')}
+          >
+            <Text style={styles.creditText}>made with ❤️ by James Agib</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
@@ -155,7 +162,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.40,
+    height: SCREEN_HEIGHT * 0.43,
     width: '100%',
     position: 'absolute',
     bottom: 0,
@@ -214,5 +221,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',
+  },
+  creditLink: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  creditText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#999999',
   },
 });
