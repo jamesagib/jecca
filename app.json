@@ -65,12 +65,6 @@
           "icon": "./assets/splash-icon.png",
           "color": "#ffffff"
         }
-      ],
-      [
-        "expo-web-browser",
-        {
-          "packageScheme": "jecca"
-        }
       ]
     ],
     "notification": {
