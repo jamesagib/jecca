@@ -435,6 +435,12 @@ export default function TomorrowScreen() {
               );
             })}
             
+            {getEmptyStateMessage() && (
+              <Text style={styles.emptyStateText}>
+                {getEmptyStateMessage()}
+              </Text>
+            )}
+            
             {/* Add Item as part of the list */}
             <View style={styles.task}>
               <View style={styles.taskInputContainer}>
@@ -589,5 +595,12 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#CFCFCF',
+    textAlign: 'center',
+    marginVertical: 20,
   },
 });
