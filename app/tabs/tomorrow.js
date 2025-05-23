@@ -25,6 +25,7 @@ import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/
 import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
 // import VoiceRecorder from '../components/VoiceRecorder';
 import { v4 as uuidv4 } from 'uuid';
+import useSettingsStore from '../store/settingsStore';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -42,11 +43,12 @@ const TIME_KEY = 'selected_time';
 export default function TomorrowScreen() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
 
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
-  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7:00am');
   const tabs = ['today', 'tomorrow'];
   const inputRef = useRef(null);
@@ -69,13 +71,16 @@ export default function TomorrowScreen() {
       const storedToggle = await storage.getItem(TOGGLE_KEY);
       const storedTime = await storage.getItem(TIME_KEY);
       
-      setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
         setSelectedTime(storedTime);
       }
     };
 
     loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
   }, []);
 
   // Single useFocusEffect for all state updates
@@ -189,9 +194,6 @@ export default function TomorrowScreen() {
       const filtered = allTasks.filter(task => task.date === tomorrow);
       setTasks(filtered);
     }
-
-    const storedToggle = await storage.getItem(TOGGLE_KEY);
-    setRemoveAfterCompletion(storedToggle === 'true');
   };
 
   const clearReminders = async () => {
@@ -200,13 +202,6 @@ export default function TomorrowScreen() {
     reloadData();
   };
 
-  const toggleSwitch = async () => {
-    const newState = !removeAfterCompletion;
-    setRemoveAfterCompletion(newState);
-    await storage.setItem(TOGGLE_KEY, newState.toString());
-  };
-
-  // Modify toggleTask to cancel notification if task is completed
   const toggleTask = async (id) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const task = tasks.find(t => t.id === id);

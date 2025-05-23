@@ -13,6 +13,7 @@ import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/
 import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
 // import VoiceRecorder from '../components/VoiceRecorder';
 import { v4 as uuidv4 } from 'uuid';
+import useSettingsStore from '../store/settingsStore';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -30,12 +31,13 @@ const TIME_KEY = 'selected_time';
 export default function TodayScreen() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
-  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7:00am');
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
@@ -57,7 +59,6 @@ export default function TodayScreen() {
       const storedToggle = await storage.getItem(TOGGLE_KEY);
       const storedTime = await storage.getItem(TIME_KEY);
       
-      setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
         setSelectedTime(storedTime);
       }
@@ -82,6 +83,10 @@ export default function TodayScreen() {
       }
     };
     setupAudio();
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
   }, []);
 
   useFocusEffect(
@@ -122,7 +127,9 @@ export default function TodayScreen() {
     }
 
     const storedToggle = await storage.getItem(TOGGLE_KEY);
-    setRemoveAfterCompletion(storedToggle === 'true');
+    if (storedToggle) {
+      useSettingsStore.getState().setRemoveAfterCompletion(storedToggle === 'true');
+    }
   };
 
   const clearAllReminders = async () => {
@@ -133,7 +140,7 @@ export default function TodayScreen() {
 
   const toggleSwitch = async () => {
     const newState = !removeAfterCompletion;
-    setRemoveAfterCompletion(newState);
+    useSettingsStore.getState().setRemoveAfterCompletion(newState);
     await storage.setItem(TOGGLE_KEY, newState.toString());
   };
 

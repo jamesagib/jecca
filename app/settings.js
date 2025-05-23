@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+import useSettingsStore from './store/settingsStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -18,16 +19,15 @@ const TOGGLE_KEY = 'remove_reminder_toggle';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const signOut = useAuthStore(state => state.signOut);
   const [isVisible, setIsVisible] = useState(true);
   const translateY = useSharedValue(SCREEN_HEIGHT);
+  
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const setRemoveAfterCompletion = useSettingsStore(state => state.setRemoveAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
 
   useEffect(() => {
-    const loadSettings = async () => {
-      const storedToggle = await storage.getItem(TOGGLE_KEY);
-      setRemoveAfterCompletion(storedToggle === 'true');
-    };
     loadSettings();
 
     // Start entrance animation
@@ -38,10 +38,8 @@ export default function SettingsScreen() {
     });
   }, []);
 
-  const toggleSwitch = async () => {
-    const newState = !removeAfterCompletion;
-    setRemoveAfterCompletion(newState);
-    await storage.setItem(TOGGLE_KEY, newState.toString());
+  const toggleSwitch = () => {
+    setRemoveAfterCompletion(!removeAfterCompletion);
   };
 
   const handleSignOut = async () => {
