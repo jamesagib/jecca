@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { storage } from './utils/storage';
 import moment from 'moment';
@@ -17,24 +17,31 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TIME_KEY = 'selected_time';
 
 const getCurrentTimeComponents = () => {
-  const now = moment();
-  const hour = now.format('h'); // 12-hour format without leading zero
-  const minute = now.format('mm'); // minutes with leading zero
-  const period = now.format('a').toLowerCase(); // 'am' or 'pm' in lowercase
-  return { hour, minute, period };
+  try {
+    const now = moment();
+    const hour = now.format('h'); // 12-hour format without leading zero
+    const minute = now.format('mm'); // minutes with leading zero
+    const period = now.format('a').toLowerCase(); // 'am' or 'pm' in lowercase
+    return { hour, minute, period };
+  } catch (error) {
+    console.error('Error getting current time:', error);
+    // Return default values if there's an error
+    return { hour: '12', minute: '00', period: 'am' };
+  }
 };
 
 export default function TimePickerScreen() {
   const router = useRouter();
-  const { hour, minute, period } = getCurrentTimeComponents();
-  const [selectedHour, setSelectedHour] = useState(hour);
-  const [selectedMinute, setSelectedMinute] = useState(minute);
-  const [selectedPeriod, setSelectedPeriod] = useState(period);
+  const [timeComponents, setTimeComponents] = useState(getCurrentTimeComponents());
+  const [selectedHour, setSelectedHour] = useState(timeComponents.hour);
+  const [selectedMinute, setSelectedMinute] = useState(timeComponents.minute);
+  const [selectedPeriod, setSelectedPeriod] = useState(timeComponents.period);
   const [isVisible, setIsVisible] = useState(true);
+  const [isReady, setIsReady] = useState(false);
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
-  useEffect(() => {
-    const loadTime = async () => {
+  const initializeTimePicker = useCallback(async () => {
+    try {
       const storedTime = await storage.getItem(TIME_KEY);
       if (storedTime) {
         const [time, period] = storedTime.toLowerCase().split(/(?=[ap]m)/);
@@ -43,32 +50,61 @@ export default function TimePickerScreen() {
         setSelectedMinute(minute);
         setSelectedPeriod(period);
       }
-      // If no stored time, keep the current time we set in initial state
-    };
-    loadTime();
-
-    // Start entrance animation
-    translateY.value = withSpring(0, {
-      damping: 20,
-      mass: 0.7,
-      stiffness: 100,
-    });
+      setIsReady(true);
+    } catch (error) {
+      console.error('Error loading time:', error);
+      setIsReady(true); // Still mark as ready to show the picker
+    }
   }, []);
 
-  const handleClose = () => {
-    translateY.value = withTiming(SCREEN_HEIGHT, {
-      duration: 250,
-    }, () => {
-      runOnJS(setIsVisible)(false);
-      runOnJS(router.back)();
-    });
-  };
+  useEffect(() => {
+    initializeTimePicker();
+  }, [initializeTimePicker]);
 
-  const handleSave = async () => {
-    const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
-    await storage.setItem(TIME_KEY, formattedTime);
-    handleClose();
-  };
+  useEffect(() => {
+    if (isReady) {
+      // Start entrance animation only after initialization
+      const timeout = setTimeout(() => {
+        translateY.value = withSpring(0, {
+          damping: 20,
+          mass: 0.7,
+          stiffness: 100,
+          overshootClamping: true,
+        });
+      }, 100);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isReady, translateY]);
+
+  const handleClose = useCallback(() => {
+    try {
+      translateY.value = withTiming(SCREEN_HEIGHT, {
+        duration: 250,
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setIsVisible)(false);
+          runOnJS(router.back)();
+        }
+      });
+    } catch (error) {
+      console.error('Error during close animation:', error);
+      // Fallback to direct close if animation fails
+      setIsVisible(false);
+      router.back();
+    }
+  }, [router, translateY]);
+
+  const handleSave = useCallback(async () => {
+    try {
+      const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
+      await storage.setItem(TIME_KEY, formattedTime);
+      handleClose();
+    } catch (error) {
+      console.error('Error saving time:', error);
+      handleClose();
+    }
+  }, [selectedHour, selectedMinute, selectedPeriod, handleClose]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -76,7 +112,7 @@ export default function TimePickerScreen() {
     };
   });
 
-  if (!isVisible) return null;
+  if (!isVisible || !isReady) return null;
 
   return (
     <View style={StyleSheet.absoluteFill}>

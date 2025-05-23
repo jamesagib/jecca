@@ -20,6 +20,7 @@ export default function RootLayout() {
     Nunito_800ExtraBold,
   });
   const [initializing, setInitializing] = useState(true);
+  const [error, setError] = useState(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const initializeAuth = useAuthStore(state => state.initialize);
 
@@ -27,11 +28,25 @@ export default function RootLayout() {
     try {
       console.log('Starting app initialization');
       
-      // Initialize auth state
-      await initializeAuth().catch(error => {
-        console.warn('Auth initialization error:', error);
-        // Continue even if auth fails
-      });
+      // Initialize auth state with retry
+      let authInitialized = false;
+      let retryCount = 0;
+      while (!authInitialized && retryCount < 3) {
+        try {
+          await initializeAuth();
+          authInitialized = true;
+        } catch (error) {
+          console.warn(`Auth initialization attempt ${retryCount + 1} failed:`, error);
+          retryCount++;
+          if (retryCount < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          }
+        }
+      }
+      
+      if (!authInitialized) {
+        console.error('Auth initialization failed after retries');
+      }
       
       // Check if onboarding is complete
       try {
@@ -44,18 +59,21 @@ export default function RootLayout() {
       }
       
       // Register for push notifications if needed
-      await registerForPushNotifications().catch(error => {
+      try {
+        await registerForPushNotifications();
+      } catch (error) {
         console.warn('Push notification registration error:', error);
-        // Continue even if push registration fails
-      });
+      }
       
       // Sync reminders
-      await syncReminders().catch(error => {
+      try {
+        await syncReminders();
+      } catch (error) {
         console.warn('Reminder sync error:', error);
-        // Continue even if sync fails
-      });
+      }
     } catch (e) {
       console.error('Error during initialization:', e);
+      setError(e.message || 'An error occurred during initialization');
     } finally {
       setInitializing(false);
       // Hide splash screen after everything is ready
@@ -68,16 +86,29 @@ export default function RootLayout() {
   }, [initializeAuth]);
 
   useEffect(() => {
-    // Start initialization as soon as fonts are loaded or if there's a font error
     if (fontsLoaded || fontError) {
       prepare();
     }
   }, [fontsLoaded, fontError, prepare]);
 
+  // Show error screen if there's an error
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 18, color: '#000000', marginBottom: 20, textAlign: 'center' }}>
+          Something went wrong. Please try restarting the app.
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666666', textAlign: 'center' }}>
+          {error}
+        </Text>
+      </View>
+    );
+  }
+
   // Show a loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#CFCFCF', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ fontSize: 18, color: '#000000' }}>Loading...</Text>
       </View>
     );
@@ -86,7 +117,7 @@ export default function RootLayout() {
   // Show a loading screen while initializing
   if (initializing) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#CFCFCF', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ fontSize: 18, color: '#000000' }}>Initializing...</Text>
       </View>
     );
@@ -97,7 +128,8 @@ export default function RootLayout() {
       {!isOnboardingComplete ? (
         <Stack
           screenOptions={{
-            headerShown: false
+            headerShown: false,
+            animation: 'none'
           }}
         >
           <Stack.Screen name="onboarding1" />
@@ -105,10 +137,11 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding3" />
           <Stack.Screen name="email-auth" />
         </Stack>
-      ) : (
+      ) :
         <Stack
           screenOptions={{
             headerShown: false,
+            animation: 'none',
             contentStyle: {
               backgroundColor: 'transparent'
             },
@@ -134,26 +167,7 @@ export default function RootLayout() {
               },
               cardStyle: {
                 backgroundColor: 'transparent'
-              },
-              cardStyleInterpolator: ({ current: { progress } }) => ({
-                cardStyle: {
-                  opacity: progress,
-                  transform: [
-                    {
-                      translateY: progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [800, 0],
-                      }),
-                    },
-                  ],
-                },
-                overlayStyle: {
-                  opacity: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 0.5],
-                  }),
-                },
-              }),
+              }
             }}
           />
           <Stack.Screen 
@@ -166,30 +180,11 @@ export default function RootLayout() {
               },
               cardStyle: {
                 backgroundColor: 'transparent'
-              },
-              cardStyleInterpolator: ({ current: { progress } }) => ({
-                cardStyle: {
-                  opacity: progress,
-                  transform: [
-                    {
-                      translateY: progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [800, 0],
-                      }),
-                    },
-                  ],
-                },
-                overlayStyle: {
-                  opacity: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 0.5],
-                  }),
-                },
-              }),
+              }
             }}
           />
         </Stack>
-      )}
+      }
     </GestureHandlerRootView>
   );
 }
