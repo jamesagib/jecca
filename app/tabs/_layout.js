@@ -13,19 +13,22 @@ export default memo(function TabsLayout() {
         animation: 'none',
         contentStyle: {
           backgroundColor: '#FFFFFF'
-        }
+        },
+        presentation: 'transparentModal'
       }}
     >
       <Tabs.Screen 
         name="today" 
         options={{
-          headerShown: false
+          headerShown: false,
+          animation: 'none'
         }}
       />
       <Tabs.Screen 
         name="tomorrow" 
         options={{
-          headerShown: false
+          headerShown: false,
+          animation: 'none'
         }}
       />
     </Tabs>

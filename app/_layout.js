@@ -127,13 +127,32 @@ export default function RootLayout() {
             name="timePicker"
             options={{
               presentation: 'transparentModal',
-              animation: 'slide_from_bottom',
+              animation: 'none',
               contentStyle: {
                 backgroundColor: 'transparent'
               },
               cardStyle: {
                 backgroundColor: 'transparent'
-              }
+              },
+              cardStyleInterpolator: ({ current: { progress } }) => ({
+                cardStyle: {
+                  opacity: progress,
+                  transform: [
+                    {
+                      translateY: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [800, 0],
+                      }),
+                    },
+                  ],
+                },
+                overlayStyle: {
+                  opacity: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 0.5],
+                  }),
+                },
+              }),
             }}
           />
         </Stack>
