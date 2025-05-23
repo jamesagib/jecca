@@ -15,17 +15,8 @@ export default function StartScreen() {
 
         const onboardingComplete = await storage.getItem('onboardingComplete');
         
-        // If user is logged in, go to today's tasks
-        if (user) {
-          router.replace('/tabs/today');
-          return;
-        }
-        
-        // If onboarding is complete but no user, reset onboarding
-        if (onboardingComplete === 'true' && !user) {
-          await storage.setItem('onboardingComplete', 'false');
-          router.replace('/onboarding1');
-        } else if (onboardingComplete === 'true') {
+        // If onboarding is complete, go to today's tasks
+        if (onboardingComplete === 'true') {
           router.replace('/tabs/today');
         } else {
           router.replace('/onboarding1');

@@ -123,7 +123,7 @@ export default function RootLayout() {
               }),
             }}
           />
-          <Stack.Screen
+          <Stack.Screen 
             name="timePicker"
             options={{
               presentation: 'transparentModal',

@@ -1,12 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { storage } from '../utils/storage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 const TIME_KEY = 'selected_time';
 
 export default function TimePickerScreen() {
@@ -29,6 +28,10 @@ export default function TimePickerScreen() {
     loadTime();
   }, []);
 
+  const handleClose = () => {
+    router.back();
+  };
+
   const handleSave = async () => {
     const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
     await storage.setItem(TIME_KEY, formattedTime);
@@ -40,7 +43,7 @@ export default function TimePickerScreen() {
       <TouchableOpacity 
         style={styles.backdrop} 
         activeOpacity={1} 
-        onPress={() => router.back()}
+        onPress={handleClose}
       />
       <View style={styles.sheet}>
         <View style={styles.handle} />
@@ -92,7 +95,7 @@ export default function TimePickerScreen() {
               style={styles.presetButton}
               onPress={async () => {
                 await storage.setItem(TIME_KEY, time);
-                router.back();
+                handleClose();
               }}
             >
               <Text style={styles.timeText}>{time}</Text>
