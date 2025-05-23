@@ -2,7 +2,7 @@
   "expo": {
     "name": "jecca",
     "slug": "jecca",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/jecca.png",
     "userInterfaceStyle": "light",
@@ -66,11 +66,10 @@
           "color": "#ffffff"
         }
       ],
-      "expo-web-browser",
       [
-        "@react-native-google-signin/google-signin",
+        "expo-web-browser",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+          "packageScheme": "jecca"
         }
       ]
     ],

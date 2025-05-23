@@ -14,16 +14,13 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
 import moment from 'moment';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
 import { useAuthStore } from '../utils/auth';
-import { scheduleNotificationWithSupabase } from '../utils/notifications';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
 import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
-// import VoiceRecorder from '../components/VoiceRecorder';
 import { v4 as uuidv4 } from 'uuid';
 import useSettingsStore from '../store/settingsStore';
 
@@ -365,24 +362,6 @@ export default function TomorrowScreen() {
     return null;
   };
 
-  useEffect(() => {
-    const setupAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-          interruptionModeIOS: 1,  // Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS
-          interruptionModeAndroid: 1,  // Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false
-        });
-      } catch (error) {
-        console.error('Error setting up audio:', error);
-      }
-    };
-    setupAudio();
-  }, []);
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -463,30 +442,6 @@ export default function TomorrowScreen() {
               </View>
             </View>
           </View>
-
-          {/* <VoiceRecorder 
-            onRecordingComplete={async (transcribedText) => {
-              // Create a new task with the transcribed text
-              const newTask = {
-                id: uuidv4(),
-                title: transcribedText,
-                time: selectedTime,
-                date: moment().add(1, 'day').format('YYYY-MM-DD'),
-                completed: false
-              };
-              
-              // Add to tasks list
-              const updatedTasks = [...tasks, newTask];
-              setTasks(updatedTasks);
-              
-              // Save to storage and sync
-              await storage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
-              await syncReminders();
-              
-              // Schedule notification if needed
-              await scheduleNotification(newTask);
-            }}
-          /> */}
         </View>
 
         <View style={styles.tabBar}>

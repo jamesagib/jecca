@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { savePushToken, deletePushToken, scheduleReminder } from './supabaseApi';
+import { savePushToken, deletePushToken } from './supabaseApi';
 import { useAuthStore } from './auth';
 
 // Configure notifications to show when app is in foreground
@@ -131,24 +131,5 @@ export async function unregisterPushNotifications() {
     console.log('Push token deleted from Supabase');
   } catch (error) {
     console.error('Error unregistering push notifications:', error);
-  }
-}
-
-export async function scheduleNotificationWithSupabase(reminder) {
-  try {
-    const { user, accessToken } = useAuthStore.getState();
-    if (!user || !accessToken) return null;
-
-    const { data, error } = await scheduleReminder(
-      reminder.id,
-      user.id,
-      accessToken
-    );
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error scheduling notification with Supabase:', error);
-    return null;
   }
 } 
