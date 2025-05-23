@@ -63,14 +63,28 @@ const useAuthStore = create((set) => ({
 
   initialize: async () => {
     try {
+      console.log('Starting auth initialization');
       set({ loading: true });
       
       // Get auth data from storage
-      const authData = await storage.getAuthData();
+      let authData = null;
+      try {
+        authData = await storage.getAuthData();
+        console.log('Auth data loaded:', { 
+          hasUser: !!authData?.user, 
+          hasToken: !!authData?.accessToken 
+        });
+      } catch (storageError) {
+        console.warn('Error loading auth data:', storageError);
+      }
       
       if (!authData?.user?.id || !authData?.accessToken) {
         console.log('No valid auth data found during initialization');
-        await storage.clearAuthData();
+        try {
+          await storage.clearAuthData();
+        } catch (clearError) {
+          console.warn('Error clearing auth data:', clearError);
+        }
         set({ 
           user: null,
           accessToken: null,
@@ -81,9 +95,18 @@ const useAuthStore = create((set) => ({
       }
 
       // Get Supabase config
-      const { supabaseUrl, supabaseAnonKey } = await storage.getSupabaseConfig();
+      let supabaseConfig = null;
+      try {
+        supabaseConfig = await storage.getSupabaseConfig();
+        console.log('Supabase config loaded:', { 
+          hasUrl: !!supabaseConfig?.supabaseUrl, 
+          hasKey: !!supabaseConfig?.supabaseAnonKey 
+        });
+      } catch (configError) {
+        console.warn('Error loading Supabase config:', configError);
+      }
       
-      if (!supabaseUrl || !supabaseAnonKey) {
+      if (!supabaseConfig?.supabaseUrl || !supabaseConfig?.supabaseAnonKey) {
         console.log('Missing Supabase configuration, proceeding in offline mode');
         set({ 
           user: authData.user,
@@ -96,10 +119,11 @@ const useAuthStore = create((set) => ({
 
       // Validate the token by making a test API call
       try {
-        const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        console.log('Attempting to validate auth token');
+        const response = await fetch(`${supabaseConfig.supabaseUrl}/auth/v1/user`, {
           headers: {
             'Authorization': `Bearer ${authData.accessToken}`,
-            'apikey': supabaseAnonKey
+            'apikey': supabaseConfig.supabaseAnonKey
           }
         });
         
@@ -114,7 +138,11 @@ const useAuthStore = create((set) => ({
           };
           
           // Save updated user data
-          await storage.saveAuthData(updatedUser, authData.accessToken);
+          try {
+            await storage.saveAuthData(updatedUser, authData.accessToken);
+          } catch (saveError) {
+            console.warn('Error saving updated auth data:', saveError);
+          }
           
           set({ 
             user: updatedUser, 
@@ -133,8 +161,8 @@ const useAuthStore = create((set) => ({
           });
           return;
         }
-      } catch (error) {
-        console.error('Error validating auth token, proceeding with stored data:', error);
+      } catch (validationError) {
+        console.error('Error validating auth token, proceeding with stored data:', validationError);
         set({ 
           user: authData.user,
           accessToken: authData.accessToken,
@@ -144,8 +172,12 @@ const useAuthStore = create((set) => ({
         return;
       }
     } catch (error) {
-      console.error('Error initializing auth:', error);
-      await storage.clearAuthData();
+      console.error('Fatal error in auth initialization:', error);
+      try {
+        await storage.clearAuthData();
+      } catch (clearError) {
+        console.warn('Error clearing auth data after fatal error:', clearError);
+      }
       set({ 
         user: null,
         accessToken: null,

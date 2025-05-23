@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/jecca.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "jecca",
     "deepLinking": true,
     "splash": {
@@ -25,7 +25,11 @@
       },
       "bundleIdentifier": "com.webcheer.jecca",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"],
+        "NSFaceIDUsageDescription": "Allow jecca to access your Face ID biometric data.",
+        "NSPhotoLibraryUsageDescription": "Allow jecca to access your photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow jecca to save photos."
       },
       "config": {
         "usesNonExemptEncryption": false,

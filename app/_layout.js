@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState, useCallback } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, Text } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,7 +9,11 @@ import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
 
-SplashScreen.preventAutoHideAsync();
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Preventing splash screen from auto-hiding might fail in Expo Go
+  console.warn('Error preventing splash screen auto-hide');
+});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -21,6 +25,8 @@ export default function RootLayout() {
 
   const prepare = useCallback(async () => {
     try {
+      console.log('Starting app initialization');
+      
       // Initialize auth state
       await initializeAuth().catch(error => {
         console.warn('Auth initialization error:', error);
@@ -51,8 +57,8 @@ export default function RootLayout() {
     } catch (e) {
       console.error('Error during initialization:', e);
     } finally {
-      // Always hide splash screen and complete initialization
       setInitializing(false);
+      // Hide splash screen after everything is ready
       try {
         await SplashScreen.hideAsync();
       } catch (error) {
@@ -62,21 +68,27 @@ export default function RootLayout() {
   }, [initializeAuth]);
 
   useEffect(() => {
+    // Start initialization as soon as fonts are loaded or if there's a font error
     if (fontsLoaded || fontError) {
       prepare();
     }
   }, [fontsLoaded, fontError, prepare]);
 
-  // If we have a font error, continue without the custom font
+  // Show a loading screen while fonts are loading
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+      <View style={{ flex: 1, backgroundColor: '#CFCFCF', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 18, color: '#000000' }}>Loading...</Text>
+      </View>
     );
   }
 
+  // Show a loading screen while initializing
   if (initializing) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />
+      <View style={{ flex: 1, backgroundColor: '#CFCFCF', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 18, color: '#000000' }}>Initializing...</Text>
+      </View>
     );
   }
 
