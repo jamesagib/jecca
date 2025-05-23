@@ -1,12 +1,6 @@
 import { create } from 'zustand';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
 import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from '../../utils/supabaseApi';
 import { storage } from './storage';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -57,32 +51,6 @@ const useAuthStore = create((set) => ({
       set({ user: data.user, accessToken: data.access_token, loading: false });
       return data;
     } catch (error) {
-      set({ error: error.message, loading: false });
-      return null;
-    }
-  },
-
-  signInWithGoogle: async (idToken) => {
-    set({ loading: true, error: null });
-    try {
-      const redirectUri = makeRedirectUri({ 
-        useProxy: true,
-        scheme: 'jecca'
-      });
-      console.log('Using redirect URI:', redirectUri);
-      
-      const data = await signInWithGoogleIdToken(idToken);
-      if (data.error) throw new Error(data.error.message);
-      
-      if (!data.user || !data.access_token) {
-        throw new Error('Invalid response from Supabase - missing user or token');
-      }
-      
-      await storage.saveAuthData(data.user, data.access_token);
-      set({ user: data.user, accessToken: data.access_token, loading: false });
-      return data;
-    } catch (error) {
-      console.error('Error in signInWithGoogle:', error);
       set({ error: error.message, loading: false });
       return null;
     }
@@ -198,36 +166,23 @@ const useAuthStore = create((set) => ({
       const { data, error } = await verifyOtp(email, token);
       if (error) throw new Error(error.message || 'Invalid code.');
       
-      // Ensure we have both user and access_token
-      if (!data?.user || !data?.session?.access_token) {
-        throw new Error('Invalid response from server');
+      if (data?.user && data?.access_token) {
+        await storage.saveAuthData(data.user, data.access_token);
+        set({ 
+          user: data.user, 
+          accessToken: data.access_token,
+          loading: false,
+          otpSent: false,
+          otpEmail: ''
+        });
       }
-
-      // Save auth data first
-      await storage.saveAuthData(data.user, data.session.access_token);
-
-      // Then update state
-      set({ 
-        user: data.user, 
-        accessToken: data.session.access_token, 
-        loading: false, 
-        otpSent: false, 
-        otpEmail: '',
-        error: null 
-      });
-
+      
       return { data };
     } catch (error) {
-      console.error('Error in verifyOtp:', error);
-      set({ 
-        error: error.message || 'Invalid code.', 
-        loading: false,
-        user: null,
-        accessToken: null
-      });
+      set({ error: error.message || 'Failed to verify code.', loading: false });
       return null;
     }
-  },
+  }
 }));
 
 export { useAuthStore };

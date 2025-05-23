@@ -4,9 +4,12 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       'react-native-reanimated/plugin',
+      '@babel/plugin-proposal-export-namespace-from',
       [
         'module-resolver',
         {
+          root: ['./'],
+          extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
           alias: {
             'stream': 'stream-browserify',
             'crypto': 'crypto-browserify',
@@ -17,6 +20,7 @@ module.exports = function (api) {
             'assert': 'assert',
             'net': false,
             'tls': false,
+            '@/*': ['./app/*'],
           },
         },
       ],
