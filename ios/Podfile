@@ -41,8 +41,9 @@ target 'jecca' do
   use_expo_modules!
   config = use_native_modules!
 
-  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
-  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
+  use_frameworks! :linkage => :static # Explicitly enable static frameworks
+  # use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
+  # use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -54,6 +55,15 @@ target 'jecca' do
   )
 
   post_install do |installer|
+    installer.pods_project.targets.each do |target|
+      # Apply to all pod targets
+      target.build_configurations.each do |config|
+        config.build_settings['DEFINES_MODULE'] = 'YES'
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++17'
+      end
+    end
     react_native_post_install(
       installer,
       config[:reactNativePath],
