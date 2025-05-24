@@ -9,20 +9,12 @@ import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
-import * as Sentry from '@sentry/react-native';
-import { posthog, trackError, trackAppInitialization } from './utils/analytics';
-import { ErrorUtils as RNErrorUtils } from 'react-native';
-
-Sentry.init({
-  dsn: 'https://bee57e0c10dd58cb1ac3097d3368d797@o4509376577667072.ingest.us.sentry.io/4509376578650112',
-
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
-
-  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: __DEV__,
-});
+import { PostHogProvider } from 'posthog-react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useEffect } from 'react';
+import { MenuProvider } from 'react-native-popup-menu';
+import './utils/textEncoderPolyfill'; // Import the polyfill
+import { AuthProvider } from './utils/auth'; // Import the AuthProvider and useAuthStore hook
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -36,7 +28,7 @@ if (LLErrorUtils) {
     await trackError(error, { is_fatal: isFatal });
   
     // Also send to Sentry for detailed debugging
-    Sentry.captureException(error);
+    // Sentry.captureException(error);
   });
 } else {
   console.warn('global.ErrorUtils was not available at init time. Global error handler not set.');

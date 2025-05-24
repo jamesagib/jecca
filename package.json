@@ -21,7 +21,6 @@
     "@react-native-community/netinfo": "11.1.0",
     "@react-native-picker/picker": "2.6.1",
     "@react-navigation/native": "^6.0.2",
-    "@sentry/react-native": "~5.20.0",
     "@supabase/supabase-js": "^2.39.7",
     "assert": "^2.1.0",
     "crypto-browserify": "^3.12.1",
