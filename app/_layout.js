@@ -142,7 +142,9 @@ export default function RootLayout() {
             contentStyle: {
               backgroundColor: 'transparent'
             },
-            cardStyle: { backgroundColor: 'transparent' }
+            cardStyle: { backgroundColor: 'transparent' },
+            gestureEnabled: false,
+            gestureDirection: 'horizontal'
           }}
         >
           <Stack.Screen 
@@ -151,7 +153,8 @@ export default function RootLayout() {
               presentation: 'card',
               contentStyle: {
                 backgroundColor: '#FFFFFF'
-              }
+              },
+              gestureEnabled: false
             }}
           />
           <Stack.Screen 
@@ -164,7 +167,8 @@ export default function RootLayout() {
               },
               cardStyle: {
                 backgroundColor: 'transparent'
-              }
+              },
+              gestureEnabled: false
             }}
           />
           <Stack.Screen 
@@ -177,7 +181,8 @@ export default function RootLayout() {
               },
               cardStyle: {
                 backgroundColor: 'transparent'
-              }
+              },
+              gestureEnabled: false
             }}
           />
         </Stack>

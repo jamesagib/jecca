@@ -10,7 +10,8 @@ import Animated, {
   useAnimatedStyle, 
   withSpring, 
   withTiming,
-  runOnJS
+  runOnJS,
+  cancelAnimation
 } from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -73,7 +74,10 @@ export default function TimePickerScreen() {
         });
       }, 100);
 
-      return () => clearTimeout(timeout);
+      return () => {
+        clearTimeout(timeout);
+        cancelAnimation(translateY);
+      };
     }
   }, [isReady, translateY]);
 

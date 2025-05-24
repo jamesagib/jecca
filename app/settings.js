@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Dimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withSpring, 
   withTiming,
-  runOnJS
+  runOnJS,
+  cancelAnimation
 } from 'react-native-reanimated';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
@@ -36,6 +37,11 @@ export default function SettingsScreen() {
       mass: 1,
       stiffness: 100,
     });
+
+    return () => {
+      // Cleanup animations when component unmounts
+      cancelAnimation(translateY);
+    };
   }, []);
 
   const toggleSwitch = () => {
@@ -68,14 +74,23 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleClose = () => {
-    translateY.value = withTiming(SCREEN_HEIGHT, {
-      duration: 250,
-    }, () => {
-      runOnJS(setIsVisible)(false);
-      runOnJS(router.back)();
-    });
-  };
+  const handleClose = useCallback(() => {
+    try {
+      translateY.value = withTiming(SCREEN_HEIGHT, {
+        duration: 250,
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setIsVisible)(false);
+          runOnJS(router.back)();
+        }
+      });
+    } catch (error) {
+      console.error('Error during close animation:', error);
+      // Fallback to direct close if animation fails
+      setIsVisible(false);
+      router.back();
+    }
+  }, [router, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

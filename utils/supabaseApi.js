@@ -1,5 +1,4 @@
 import 'expo-constants/virtual/env';
-import Constants from 'expo-constants';
 import { supabaseUrl, supabaseAnonKey } from './supabaseConfig';
 
 // --- AUTH ---

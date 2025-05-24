@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
 
 // Supabase configuration
-export const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
-export const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
+const extra = Constants.expoConfig?.extra ?? Constants.manifest?.extra;
+export const supabaseUrl = extra?.supabaseUrl;
+export const supabaseAnonKey = extra?.supabaseAnonKey;
 
 // Export a function to get config that ensures values are available
 export function getSupabaseConfig() {
