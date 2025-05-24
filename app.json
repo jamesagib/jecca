@@ -27,7 +27,9 @@
       "bundleIdentifier": "com.webcheer.jecca",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSFaceIDUsageDescription": "Allow jecca to access your Face ID biometric data.",
         "NSPhotoLibraryUsageDescription": "Allow jecca to access your photos.",
         "NSPhotoLibraryAddUsageDescription": "Allow jecca to save photos."
@@ -69,6 +71,14 @@
         {
           "icon": "./assets/splash-icon.png",
           "color": "#ffffff"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "webcheer"
         }
       ]
     ],
