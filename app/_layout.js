@@ -9,6 +9,8 @@ import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
 import * as Sentry from '@sentry/react-native';
+import { posthog, trackError, trackAppInitialization } from './utils/analytics';
+import { ErrorUtils } from 'react-native';
 
 Sentry.init({
   dsn: 'https://bee57e0c10dd58cb1ac3097d3368d797@o4509376577667072.ingest.us.sentry.io/4509376578650112',
@@ -29,7 +31,16 @@ Sentry.init({
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default Sentry.wrap(function RootLayout() {
+// Initialize error handling
+ErrorUtils.setGlobalHandler(async (error, isFatal) => {
+  console.error('Global error:', error);
+  await trackError(error, { is_fatal: isFatal });
+  
+  // Also send to Sentry for detailed debugging
+  Sentry.captureException(error);
+});
+
+export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Nunito_800ExtraBold,
   });
@@ -41,6 +52,9 @@ export default Sentry.wrap(function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Track app initialization start
+        await trackAppInitialization();
+        
         // Initialize auth state with retry
         let retryCount = 0;
         while (retryCount < 3) {
@@ -50,6 +64,10 @@ export default Sentry.wrap(function RootLayout() {
           } catch (error) {
             retryCount++;
             if (retryCount < 3) await new Promise(resolve => setTimeout(resolve, 1000));
+            await trackError(error, { 
+              context: 'auth_initialization',
+              retry_count: retryCount 
+            });
           }
         }
         
@@ -59,11 +77,16 @@ export default Sentry.wrap(function RootLayout() {
         
         // Initialize other features
         await Promise.all([
-          registerForPushNotifications().catch(() => {}),
-          syncReminders().catch(() => {})
+          registerForPushNotifications().catch(async (error) => {
+            await trackError(error, { context: 'push_notifications' });
+          }),
+          syncReminders().catch(async (error) => {
+            await trackError(error, { context: 'reminders_sync' });
+          })
         ]);
       } catch (e) {
         setError('An error occurred during initialization');
+        await trackError(e, { context: 'app_initialization' });
       } finally {
         setInitializing(false);
         await SplashScreen.hideAsync().catch(() => {});
@@ -161,4 +184,4 @@ export default Sentry.wrap(function RootLayout() {
       }
     </GestureHandlerRootView>
   );
-});
+}
