@@ -1,27 +1,39 @@
 import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import { storage } from './utils/storage';
+import { registerForPushNotifications } from './utils/notifications';
+import { syncReminders } from './utils/sync';
 
 export default function OnboardingScreen() {
   const router = useRouter();
 
   const completeOnboarding = async () => {
     try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === 'granted') {
-        await storage.setItem('onboardingComplete', 'true');
+      const pushToken = await registerForPushNotifications();
+
+      await storage.setItem('onboardingComplete', 'true');
+      
+      // Attempt to sync reminders after setting onboarding complete
+      try {
+        await syncReminders();
+      } catch (syncError) {
+        console.error('Error syncing reminders during onboarding completion:', syncError);
+        // Decide if you want to track this error separately or inform the user
+        // For now, we'll just log it and proceed
+      }
+
+      if (pushToken) {
         router.replace('/tabs/today');
       } else {
-        await storage.setItem('onboardingComplete', 'true');
         Alert.alert(
-          'Notifications Disabled',
-          'You can enable notifications in your device settings to receive reminders.',
+          'Notifications Setup',
+          'You can enable/disable notifications in your device settings anytime.',
           [{ text: 'OK', onPress: () => router.replace('/tabs/today') }]
         );
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      await storage.setItem('onboardingComplete', 'true');
       router.replace('/tabs/today');
     }
   };

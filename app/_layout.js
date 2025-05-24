@@ -26,9 +26,6 @@ if (LLErrorUtils) {
   LLErrorUtils.setGlobalHandler(async (error, isFatal) => {
     console.error('Global error:', error, 'Is fatal:', isFatal);
     await trackError(error, { is_fatal: isFatal });
-  
-    // Also send to Sentry for detailed debugging
-    // Sentry.captureException(error);
   });
 } else {
   console.warn('global.ErrorUtils was not available at init time. Global error handler not set.');
@@ -70,14 +67,8 @@ export default function RootLayout() {
         setIsOnboardingComplete(onboardingComplete === 'true');
         
         // Initialize other features
-        await Promise.all([
-          registerForPushNotifications().catch(async (error) => {
-            await trackError(error, { context: 'push_notifications' });
-          }),
-          syncReminders().catch(async (error) => {
-            await trackError(error, { context: 'reminders_sync' });
-          })
-        ]);
+        // The Promise.all block is now empty and can be removed.
+        // await Promise.all([ /* ... */ ]); 
       } catch (e) {
         setError('An error occurred during initialization');
         await trackError(e, { context: 'app_initialization' });
