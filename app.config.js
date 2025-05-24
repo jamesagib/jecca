@@ -7,8 +7,8 @@ export default ({ config }) => {
       ...config.extra,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
       androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
       expoClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     },
     scheme: 'jecca', // This is important for deep linking
