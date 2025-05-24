@@ -107,8 +107,8 @@ class Storage {
 
   async getSupabaseConfig() {
     try {
-      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+      const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
 
       if (!supabaseUrl || !supabaseAnonKey) {
         console.warn('Missing Supabase configuration:', {

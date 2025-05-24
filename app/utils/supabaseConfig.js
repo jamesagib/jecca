@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 
 // Supabase configuration
-export const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
-export const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+export const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+export const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
 
 // Export a function to get config that ensures values are available
 export function getSupabaseConfig() {
@@ -18,6 +18,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Add security warning for development
-if (process.env.NODE_ENV === 'development') {
+if (__DEV__) {
   console.log('Using development Supabase configuration. Make sure to set up environment variables for production.');
 } 
