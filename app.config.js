@@ -20,6 +20,7 @@ export default ({
           ...(config.expo?.extra?.eas || {}),
           projectId: config.expo?.extra?.eas?.projectId || process.env.EAS_PROJECT_ID,
         },
+        projectId: "0be2e439-23c0-41fb-9351-824b644439c0"
       },
       scheme: 'jecca', // This is important for deep linking
       ios: {
