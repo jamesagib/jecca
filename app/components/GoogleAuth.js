@@ -4,7 +4,7 @@ import { useAuthStore } from '../utils/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
-import { signInWithGoogleIdToken } from '../../utils/supabaseApi';
+import { signInWithGoogleIdToken } from '../utils/supabaseApi';
 import { trackError, trackAuthentication } from '../utils/analytics';
 
 WebBrowser.maybeCompleteAuthSession();

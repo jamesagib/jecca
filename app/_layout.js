@@ -1,3 +1,4 @@
+import 'text-encoding'; // Polyfill for TextEncoder
 import { Stack } from 'expo-router';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, View, Text } from 'react-native';
@@ -10,7 +11,7 @@ import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
 import * as Sentry from '@sentry/react-native';
 import { posthog, trackError, trackAppInitialization } from './utils/analytics';
-import { ErrorUtils } from 'react-native';
+import { ErrorUtils as RNErrorUtils } from 'react-native';
 
 Sentry.init({
   dsn: 'https://bee57e0c10dd58cb1ac3097d3368d797@o4509376577667072.ingest.us.sentry.io/4509376578650112',
@@ -18,11 +19,6 @@ Sentry.init({
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
   sendDefaultPii: true,
-
-  // Configure Session Replay
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration()],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,
@@ -32,13 +28,19 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Initialize error handling
-ErrorUtils.setGlobalHandler(async (error, isFatal) => {
-  console.error('Global error:', error);
-  await trackError(error, { is_fatal: isFatal });
+const LLErrorUtils = global.ErrorUtils;
+
+if (LLErrorUtils) {
+  LLErrorUtils.setGlobalHandler(async (error, isFatal) => {
+    console.error('Global error:', error, 'Is fatal:', isFatal);
+    await trackError(error, { is_fatal: isFatal });
   
-  // Also send to Sentry for detailed debugging
-  Sentry.captureException(error);
-});
+    // Also send to Sentry for detailed debugging
+    Sentry.captureException(error);
+  });
+} else {
+  console.warn('global.ErrorUtils was not available at init time. Global error handler not set.');
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

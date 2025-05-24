@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from '../../utils/supabaseApi';
+import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from './supabaseApi';
 import { storage } from './storage';
 import { identifyUser, resetIdentity } from './analytics';
 
