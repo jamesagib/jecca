@@ -3,6 +3,9 @@ import 'dotenv/config';
 export default ({ config }) => {
   return {
     ...config,
+    plugins: [
+      "expo-localization"
+    ],
     extra: {
       ...config.extra,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,

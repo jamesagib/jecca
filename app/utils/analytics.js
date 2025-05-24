@@ -12,6 +12,33 @@ export const posthog = new PostHog(
   }
 );
 
+// Identify user
+export const identifyUser = async (userId, userProperties = {}) => {
+  try {
+    await posthog.identify(userId, {
+      ...userProperties,
+      platform: Platform.OS,
+      app_version: Constants.expoConfig?.version,
+      $set_once: {
+        first_seen: new Date().toISOString(),
+      }
+    });
+    console.log('PostHog user identified:', userId);
+  } catch (e) {
+    console.error('Failed to identify user:', e);
+  }
+};
+
+// Reset user identification (on logout)
+export const resetIdentity = async () => {
+  try {
+    await posthog.reset();
+    console.log('PostHog identity reset');
+  } catch (e) {
+    console.error('Failed to reset PostHog identity:', e);
+  }
+};
+
 // Track app crashes
 export const trackError = async (error, errorInfo = {}) => {
   try {

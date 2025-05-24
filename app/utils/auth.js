@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from '../../utils/supabaseApi';
 import { storage } from './storage';
+import { identifyUser, resetIdentity } from './analytics';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -11,10 +12,15 @@ const useAuthStore = create((set) => ({
   otpSent: false,
   otpEmail: '',
 
-  setUser: (user) => {
+  setUser: async (user) => {
     set({ user });
     if (user) {
-      storage.saveAuthData(user, useAuthStore.getState().accessToken);
+      await storage.saveAuthData(user, useAuthStore.getState().accessToken);
+      // Identify user in PostHog
+      await identifyUser(user.id, {
+        email: user.email,
+        auth_provider: user.app_metadata?.provider || 'email',
+      });
     }
   },
 
@@ -75,6 +81,11 @@ const useAuthStore = create((set) => ({
         };
         
         await storage.saveAuthData(updatedUser, authData.accessToken);
+        // Re-identify user in PostHog after initialization
+        await identifyUser(updatedUser.id, {
+          email: updatedUser.email,
+          auth_provider: updatedUser.app_metadata?.provider || 'email',
+        });
         set({ 
           user: updatedUser, 
           accessToken: authData.accessToken,
@@ -131,6 +142,7 @@ const useAuthStore = create((set) => ({
 
   signOut: async () => {
     await storage.clearAuthData();
+    await resetIdentity(); // Reset PostHog identity
     set({ user: null, accessToken: null });
   },
 
