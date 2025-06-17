@@ -22,7 +22,6 @@ const LLErrorUtils = global.ErrorUtils;
 if (LLErrorUtils) {
   LLErrorUtils.setGlobalHandler(async (error, isFatal) => {
     console.error('Global error:', error, 'Is fatal:', isFatal);
-    await trackError(error, { is_fatal: isFatal });
   });
 } else {
   console.warn('global.ErrorUtils was not available at init time. Global error handler not set.');
@@ -89,7 +88,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <MenuProvider>
-          <Stack>
+          <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen
               name="index"
               options={{
@@ -98,12 +97,6 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="home"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="onboarding"
               options={{
                 headerShown: false,
               }}
