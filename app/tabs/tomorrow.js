@@ -43,12 +43,6 @@ export default function TomorrowScreen() {
   const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
   const loadSettings = useSettingsStore(state => state.loadSettings);
 
-  useEffect(() => {
-    if (!user) {
-      router.replace('/onboarding1');
-    }
-  }, [user, router]);
-
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');

@@ -131,7 +131,8 @@ const useAuthStore = create((set) => ({
 
   signOut: async () => {
     await storage.clearAuthData();
-    set({ user: null, accessToken: null });
+    await storage.removeItem('onboardingComplete');
+    set({ user: null, accessToken: null, initialized: false });
   },
 
   handleAuthStateChange: ({ event, session }) => {

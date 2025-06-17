@@ -31,12 +31,6 @@ export default function TodayScreen() {
   const { user } = useAuthStore();
   const { loadSettings } = useSettingsStore();
 
-  useEffect(() => {
-    if (!user) {
-      router.replace('/onboarding1');
-    }
-  }, [user, router]);
-
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');

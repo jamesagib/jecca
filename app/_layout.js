@@ -1,5 +1,8 @@
+import 'react-native-get-random-values';
 import 'text-encoding'; // Polyfill for TextEncoder
 import React from 'react';
+import moment from 'moment-timezone';
+import 'moment/locale/en';
 import { Stack } from 'expo-router';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, View, Text, ActivityIndicator } from 'react-native';
@@ -12,6 +15,9 @@ import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MenuProvider } from 'react-native-popup-menu';
+
+// Load timezone data
+moment.tz.setDefault('America/New_York');
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -91,12 +97,6 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen
               name="index"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="home"
               options={{
                 headerShown: false,
               }}

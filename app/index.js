@@ -1,26 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useAuthStore } from './utils/auth';
+import { storage } from './utils/storage';
 
 export default function Index() {
   const { user, initialized } = useAuthStore();
+  const [onboardingComplete, setOnboardingComplete] = useState(null);
   const router = useRouter();
 
-  if (!initialized) {
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      const status = await storage.getItem('onboardingComplete');
+      setOnboardingComplete(status === 'true');
+    };
+    checkOnboardingStatus();
+  }, []);
+
+  if (!initialized || onboardingComplete === null) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color="#000000" />
       </View>
     );
   }
 
-  // If user is authenticated, redirect to home
-  if (user) {
-    return <Redirect href="/home" />;
+  if (user || onboardingComplete) {
+    return <Redirect href="/tabs/today" />;
   }
 
-  // If not authenticated, redirect to onboarding
   return <Redirect href="/onboarding1" />;
 }
 

@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
 

@@ -20,7 +20,10 @@ const TOGGLE_KEY = 'remove_reminder_toggle';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const signOut = useAuthStore(state => state.signOut);
+  const { user, signOut } = useAuthStore(state => ({
+    user: state.user,
+    signOut: state.signOut,
+  }));
   const [isVisible, setIsVisible] = useState(true);
   const translateY = useSharedValue(SCREEN_HEIGHT);
   
@@ -48,9 +51,13 @@ export default function SettingsScreen() {
     setRemoveAfterCompletion(!removeAfterCompletion);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace('/onboarding1');
+  const handleAuthAction = async () => {
+    if (user) {
+      await signOut();
+      handleClose();
+    } else {
+      handleClose(() => router.replace('/onboarding1'));
+    }
   };
 
   const handleClearReminders = () => {
@@ -74,21 +81,29 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback((onFinished) => {
     try {
       translateY.value = withTiming(SCREEN_HEIGHT, {
         duration: 250,
       }, (finished) => {
         if (finished) {
           runOnJS(setIsVisible)(false);
-          runOnJS(router.back)();
+          if (onFinished) {
+            runOnJS(onFinished)();
+          } else {
+            runOnJS(router.back)();
+          }
         }
       });
     } catch (error) {
       console.error('Error during close animation:', error);
       // Fallback to direct close if animation fails
       setIsVisible(false);
-      router.back();
+      if (onFinished) {
+        onFinished();
+      } else {
+        router.back();
+      }
     }
   }, [router, translateY]);
 
@@ -142,9 +157,11 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={styles.signOutButton}
-            onPress={handleSignOut}
+            onPress={handleAuthAction}
           >
-            <Text style={styles.signOutText}>sign out</Text>
+            <Text style={styles.signOutText}>
+              {user ? 'sign out' : 'sign up / sign in'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
