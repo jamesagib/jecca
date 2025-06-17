@@ -1,4 +1,4 @@
-import { getReminders, upsertReminders, updateReminderStatus, deleteReminder } from '../../utils/supabaseApi';
+import { getReminders, upsertReminders, updateReminderStatus, deleteReminder } from './supabaseApi';
 import { storage } from './storage';
 import { useAuthStore } from './auth';
 

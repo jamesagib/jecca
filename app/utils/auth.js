@@ -1,12 +1,7 @@
 import { create } from 'zustand';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
-import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from '../../utils/supabaseApi';
+import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from './supabaseApi';
 import { storage } from './storage';
-
-WebBrowser.maybeCompleteAuthSession();
+import { identifyUser, resetIdentity } from './analytics';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -17,10 +12,15 @@ const useAuthStore = create((set) => ({
   otpSent: false,
   otpEmail: '',
 
-  setUser: (user) => {
+  setUser: async (user) => {
     set({ user });
     if (user) {
-      storage.saveAuthData(user, useAuthStore.getState().accessToken);
+      await storage.saveAuthData(user, useAuthStore.getState().accessToken);
+      // Identify user in PostHog
+      await identifyUser(user.id, {
+        email: user.email,
+        auth_provider: user.app_metadata?.provider || 'email',
+      });
     }
   },
 
@@ -33,6 +33,84 @@ const useAuthStore = create((set) => ({
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+
+  initialize: async () => {
+    try {
+      set({ loading: true });
+      
+      // Get auth data from storage
+      const authData = await storage.getAuthData();
+      
+      if (!authData?.user?.id || !authData?.accessToken) {
+        await storage.clearAuthData();
+        set({ 
+          user: null,
+          accessToken: null,
+          loading: false, 
+          initialized: true 
+        });
+        return;
+      }
+
+      // Get Supabase config
+      const supabaseConfig = await storage.getSupabaseConfig();
+      
+      if (!supabaseConfig?.supabaseUrl || !supabaseConfig?.supabaseAnonKey) {
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+        return;
+      }
+
+      // Validate the token
+      const response = await fetch(`${supabaseConfig.supabaseUrl}/auth/v1/user`, {
+        headers: {
+          'Authorization': `Bearer ${authData.accessToken}`,
+          'apikey': supabaseConfig.supabaseAnonKey
+        }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        const updatedUser = {
+          ...authData.user,
+          ...userData,
+        };
+        
+        await storage.saveAuthData(updatedUser, authData.accessToken);
+        // Re-identify user in PostHog after initialization
+        await identifyUser(updatedUser.id, {
+          email: updatedUser.email,
+          auth_provider: updatedUser.app_metadata?.provider || 'email',
+        });
+        set({ 
+          user: updatedUser, 
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true 
+        });
+      } else {
+        set({ 
+          user: authData.user,
+          accessToken: authData.accessToken,
+          loading: false,
+          initialized: true
+        });
+      }
+    } catch (error) {
+      await storage.clearAuthData();
+      set({ 
+        user: null,
+        accessToken: null,
+        loading: false, 
+        initialized: true,
+        error: error.message 
+      });
+    }
+  },
 
   signIn: async (email, password) => {
     set({ loading: true, error: null });
@@ -62,26 +140,13 @@ const useAuthStore = create((set) => ({
     }
   },
 
-  signInWithGoogle: async (idToken) => {
-    set({ loading: true, error: null });
-    try {
-      console.log(makeRedirectUri({ useProxy: true }));
-      const data = await signInWithGoogleIdToken(idToken);
-      if (data.error) throw new Error(data.error.message);
-      await storage.saveAuthData(data.user, data.access_token);
-      set({ user: data.user, accessToken: data.access_token, loading: false });
-      return data;
-    } catch (error) {
-      set({ error: error.message, loading: false });
-      return null;
-    }
-  },
-
   signOut: async () => {
     await storage.clearAuthData();
+    await resetIdentity(); // Reset PostHog identity
     set({ user: null, accessToken: null });
   },
 
+<<<<<<< HEAD
   initialize: async () => {
     try {
       set({ loading: true });
@@ -166,11 +231,15 @@ const useAuthStore = create((set) => ({
     }
   },
 
+=======
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
   handleAuthStateChange: ({ event, session }) => {
     if (session?.user) {
       storage.saveAuthData(session.user, session.access_token);
+      set({ user: session.user, accessToken: session.access_token });
+    } else {
+      set({ user: null, accessToken: null });
     }
-    set({ user: session?.user || null });
   },
 
   sendOtp: async (email) => {
@@ -192,6 +261,7 @@ const useAuthStore = create((set) => ({
       const { data, error } = await verifyOtp(email, token);
       if (error) throw new Error(error.message || 'Invalid code.');
       
+<<<<<<< HEAD
       // Ensure we have both user and session data
       if (!data.user || !data.session) {
         throw new Error('Invalid response from server');
@@ -210,13 +280,25 @@ const useAuthStore = create((set) => ({
 
       // Set onboarding complete since we have a valid user
       await storage.setItem('onboardingComplete', 'true');
+=======
+      if (data?.user && data?.access_token) {
+        await storage.saveAuthData(data.user, data.access_token);
+        set({ 
+          user: data.user, 
+          accessToken: data.access_token,
+          loading: false,
+          otpSent: false,
+          otpEmail: ''
+        });
+      }
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
       
       return { data };
     } catch (error) {
-      set({ error: error.message || 'Invalid code.', loading: false });
+      set({ error: error.message || 'Failed to verify code.', loading: false });
       return null;
     }
-  },
+  }
 }));
 
 export { useAuthStore };

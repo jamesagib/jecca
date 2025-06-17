@@ -2,43 +2,31 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+import { View } from 'react-native';
 
 export default function StartScreen() {
   const router = useRouter();
-  const { user, initialized } = useAuthStore();
+  const { initialized } = useAuthStore();
 
   useEffect(() => {
-    async function checkInitialRoute() {
-      try {
-        // Wait for auth to be initialized
-        if (!initialized) return;
+    let mounted = true;
 
-        const onboardingComplete = await storage.getItem('onboardingComplete');
-        
-        // If user is logged in, go to today's tasks
-        if (user) {
-          router.replace('/tabs/today');
-          return;
-        }
-        
-        // If onboarding is complete but no user, reset onboarding
-        if (onboardingComplete === 'true' && !user) {
-          await storage.setItem('onboardingComplete', 'false');
-          router.replace('/onboarding1');
-        } else if (onboardingComplete === 'true') {
-          router.replace('/tabs/today');
-        } else {
-          router.replace('/onboarding1');
-        }
+    async function navigate() {
+      if (!mounted || !initialized) return;
+      
+      try {
+        const onboardingComplete = await storage.getItem('onboardingComplete') === 'true';
+        const targetRoute = onboardingComplete ? '/tabs/today' : '/onboarding1';
+        await router.replace(targetRoute);
       } catch (error) {
-        console.error('Error checking initial route:', error);
         await storage.setItem('onboardingComplete', 'false');
-        router.replace('/onboarding1');
+        await router.replace('/onboarding1');
       }
     }
 
-    checkInitialRoute();
-  }, [user, initialized]);
+    navigate();
+    return () => { mounted = false; };
+  }, [initialized, router]);
 
-  return null;
+  return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
 }

@@ -1,266 +1,247 @@
-import { useState, useEffect } from 'react';
-import { useRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, Modal, Dimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { useEffect, useState, useCallback } from 'react';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS,
+  cancelAnimation
+} from 'react-native-reanimated';
 import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
+import useSettingsStore from './store/settingsStore';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const TOGGLE_KEY = 'remove_reminder_toggle';
-const TASKS_KEY = 'tasks';
 
-export default function SettingsModal() {
+export default function SettingsScreen() {
   const router = useRouter();
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['35%'], []);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const { user, signOut } = useAuthStore();
+  const signOut = useAuthStore(state => state.signOut);
+  const [isVisible, setIsVisible] = useState(true);
+  const translateY = useSharedValue(SCREEN_HEIGHT);
+  
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const setRemoveAfterCompletion = useSettingsStore(state => state.setRemoveAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/onboarding1');
-    }
-  }, [user, router]);
+    loadSettings();
 
-  const handleSheetChanges = useCallback((index) => {
-    if (index === -1) {
-      router.back();
-    }
-  }, [router]);
+    // Start entrance animation
+    translateY.value = withSpring(0, {
+      damping: 20,
+      mass: 1,
+      stiffness: 100,
+    });
 
-  useEffect(() => {
-    const loadToggleState = async () => {
-      const storedToggle = await storage.getItem(TOGGLE_KEY);
-      if (storedToggle !== null) {
-        setIsEnabled(storedToggle === 'true');
-      }
+    return () => {
+      // Cleanup animations when component unmounts
+      cancelAnimation(translateY);
     };
-    loadToggleState();
   }, []);
 
-  const renderBackdrop = useCallback(
-    props => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
-  const toggleSwitch = async () => {
-    try {
-      const newState = !isEnabled;
-      await storage.setItem(TOGGLE_KEY, newState.toString());
-      setIsEnabled(newState);
-    } catch (error) {
-      console.error('Error toggling switch:', error);
-      Alert.alert('Error', 'Failed to update setting.');
-    }
-  };
-
-  const clearAllReminders = async () => {
-    try {
-      await storage.removeItem(TASKS_KEY);
-      Alert.alert('Success', 'All reminders have been cleared.');
-      router.push('/tabs/today');
-    } catch (error) {
-      console.error('Error clearing reminders:', error);
-      Alert.alert('Error', 'Failed to clear reminders.');
-    }
+  const toggleSwitch = () => {
+    setRemoveAfterCompletion(!removeAfterCompletion);
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace('/onboarding1');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out.');
-    }
+    await signOut();
+    router.replace('/onboarding1');
   };
 
+  const handleClearReminders = () => {
+    Alert.alert(
+      "Clear All Reminders",
+      "Are you sure you want to clear all reminders? This cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All",
+          onPress: async () => {
+            await storage.removeItem('tasks');
+            handleClose();
+          },
+          style: "destructive"
+        }
+      ]
+    );
+  };
+
+  const handleClose = useCallback(() => {
+    try {
+      translateY.value = withTiming(SCREEN_HEIGHT, {
+        duration: 250,
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setIsVisible)(false);
+          runOnJS(router.back)();
+        }
+      });
+    } catch (error) {
+      console.error('Error during close animation:', error);
+      // Fallback to direct close if animation fails
+      setIsVisible(false);
+      router.back();
+    }
+  }, [router, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  if (!isVisible) return null;
+
   return (
-    <View style={[styles.container, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <BottomSheet
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        index={0}
-        style={{ flex: 1 }}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
-        handleStyle={styles.handleStyle}
-      >
-        <BottomSheetView style={styles.contentContainer}>
-          {user && (
-            <View style={styles.accountSection}>
-              <Text style={styles.emailText}>{user.email}</Text>
-              <TouchableOpacity 
-                style={styles.signOutButton} 
-                onPress={handleSignOut}
-              >
-                <Text style={styles.signOutButtonText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.settingContainer}>
-            <View style={styles.textContainer}>
-              <Text style={styles.settingName}>Remove reminder after completion</Text>
-            </View>
-            <Switch
-              trackColor={{false: '#CFCFCF', true: '#53d769'}}
-              thumbColor={isEnabled ? 'white' : 'white'}
-              ios_backgroundColor="#CFCFCF"
-              onValueChange={toggleSwitch}
-              value={isEnabled}
-            />
-          </View>
+    <Modal
+      transparent
+      visible={isVisible}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.backdrop} 
+          activeOpacity={1} 
+          onPress={handleClose}
+        />
+        <Animated.View 
+          style={[
+            styles.sheet,
+            animatedStyle
+          ]}
+        >
+          <View style={styles.handle} />
+          <Text style={styles.title}>settings</Text>
           
-          <TouchableOpacity 
-            style={styles.clearButton} 
-            onPress={() => {
-              Alert.alert(
-                'Clear All Reminders',
-                'Are you sure you want to clear all reminders?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'OK', onPress: clearAllReminders },
-                ]
-              );
-            }}
-            activeOpacity={0.7}
+          <View style={styles.section}>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingText}>Remove reminder after completion</Text>
+              <Switch
+                value={removeAfterCompletion}
+                onValueChange={toggleSwitch}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearReminders}
           >
-            <Text style={styles.closeButtonText}>Clear reminders</Text>
+            <Text style={styles.clearButtonText}>Clear reminders</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => Linking.openURL('https://x.com/agibjames')}
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
           >
-            <Text style={styles.madeWithLoveText}>made with ❤️ by James Agib</Text>
+            <Text style={styles.signOutText}>sign out</Text>
           </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
-    </View>
+
+          <TouchableOpacity
+            style={styles.creditLink}
+            onPress={() => Linking.openURL('https://x.com/@agibjames')}
+          >
+            <Text style={styles.creditText}>made with ❤️ by James Agib</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'flex-end',
     backgroundColor: 'transparent',
   },
-  sheetBackground: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,  // Increased corner radius
-    borderTopRightRadius: 25, // Increased corner radius
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  handleStyle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    height: SCREEN_HEIGHT * 0.43,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  handleIndicator: {
-    backgroundColor: '#CFCFCF',
+  handle: {
     width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 4,
+    backgroundColor: '#CFCFCF',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 12,
-    textAlign: 'center',
-    textTransform: 'lowercase',
+    fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginBottom: 20,
+    color: '#000000',
   },
-  subtitle: {
+  section: {
+    borderBottomWidth: 1,
+    borderColor: '#CFCFCF',
+    paddingVertical: 15,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingText: {
     fontSize: 16,
-    color: '#ADADAD',
-    marginBottom: 24,
-    textTransform: 'lowercase',
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
   },
   clearButton: {
-    marginTop: 10,
-    paddingVertical: 12,
-    width: '96%',
-    alignItems: 'center',
-    backgroundColor: 'red',
-    borderRadius: 12
-  },
-  closeButtonText: {
-    color: 'white',  
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    textTransform: 'lowercase',
-  },
-  settingContainer: {
-    flexDirection: 'row',
-    width: '95%',
-    justifyContent: 'space-between'
-  },
-  textContainer: {
-    width: '80%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  settingName: {
-    fontSize: 20,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    lineHeight: 22,
-    textTransform: 'lowercase',
-  },
-  madeWithLoveText: {
-    fontSize: 16,
-    color: '#212121',
-    textAlign: 'center',
-    fontFamily: 'Nunito_800ExtraBold',
-    marginTop: 8,  // Add a small top margin
-    textTransform: 'lowercase',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
-  accountSection: {
-    width: '100%',
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
     alignItems: 'center',
   },
-  emailText: {
+  clearButtonText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    marginBottom: 10,
-    textTransform: 'lowercase',
+    color: '#000000',
   },
   signOutButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+    alignItems: 'center',
   },
-  signOutButtonText: {
+  signOutText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
+  },
+  creditLink: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  creditText: {
     fontSize: 14,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#FF3B30',
-    textTransform: 'lowercase',
-  }
+    color: '#999999',
+  },
 });

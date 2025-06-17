@@ -1,23 +1,71 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import GoogleAuth from './components/GoogleAuth';
 import { useAuthStore } from './utils/auth';
 import EmailAuth from './components/EmailAuth';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Onboarding1() {
   const { user, initialize } = useAuthStore();
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    initialize();
-    // You may want to add logic here to handle auth state changes
+    const init = async () => {
+      try {
+        await initialize();
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        setError('Failed to initialize. Please try again.');
+      }
+    };
+    init();
   }, []);
 
   const handleAuthSuccess = (user) => {
-    // If successful auth, you may want to navigate or update state
-    console.log('Successfully authenticated:', user.email);
-    router.push('/onboarding2');
+    try {
+      console.log('Successfully authenticated:', user.email);
+      router.push('/onboarding2');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setError('Failed to proceed. Please try again.');
+    }
   };
+
+  if (!isInitialized) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Oops!</Text>
+          <Text style={styles.subtitle}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              setError(null);
+              setIsInitialized(false);
+              initialize();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -102,6 +150,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emailButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
+  },
+  retryButton: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  retryButtonText: {
     color: '#000',
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',

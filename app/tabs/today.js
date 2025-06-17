@@ -9,7 +9,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
 import { useAuthStore } from '../utils/auth';
 import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
-import { upsertReminders } from '../utils/supabaseApi';
+import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
+import { v4 as uuidv4 } from 'uuid';
+import useSettingsStore from '../store/settingsStore';
 
 // Configure notifications to show when app is in foreground
 Notifications.setNotificationHandler({
@@ -26,6 +28,7 @@ const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
+<<<<<<< HEAD
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -33,12 +36,16 @@ export default function TodayScreen() {
       router.replace('/onboarding1');
     }
   }, [user, router]);
+=======
+  const user = useAuthStore(state => state.user);
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
-  const [removeAfterCompletion, setRemoveAfterCompletion] = useState(false);
   const [selectedTime, setSelectedTime] = useState('7:00am');
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
@@ -60,7 +67,6 @@ export default function TodayScreen() {
       const storedToggle = await storage.getItem(TOGGLE_KEY);
       const storedTime = await storage.getItem(TIME_KEY);
       
-      setRemoveAfterCompletion(storedToggle === 'true');
       if (storedTime) {
         setSelectedTime(storedTime);
       }
@@ -69,9 +75,20 @@ export default function TodayScreen() {
     loadInitialData();
   }, []);
 
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       const updateState = async () => {
+        const { user, accessToken } = useAuthStore.getState();
+        
+        // Clean up reminders if user is logged in
+        if (user && accessToken) {
+          await cleanupReminders(user.id, accessToken);
+        }
+        
         // Update time
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
@@ -100,7 +117,9 @@ export default function TodayScreen() {
     }
 
     const storedToggle = await storage.getItem(TOGGLE_KEY);
-    setRemoveAfterCompletion(storedToggle === 'true');
+    if (storedToggle) {
+      useSettingsStore.getState().setRemoveAfterCompletion(storedToggle === 'true');
+    }
   };
 
   const clearAllReminders = async () => {
@@ -111,7 +130,7 @@ export default function TodayScreen() {
 
   const toggleSwitch = async () => {
     const newState = !removeAfterCompletion;
-    setRemoveAfterCompletion(newState);
+    useSettingsStore.getState().setRemoveAfterCompletion(newState);
     await storage.setItem(TOGGLE_KEY, newState.toString());
   };
 
@@ -223,6 +242,7 @@ export default function TodayScreen() {
       // If user is logged in, save to Supabase first
       if (user && accessToken) {
         try {
+<<<<<<< HEAD
           // Add user information to tasks before saving
           const tasksWithUser = todayTasks.map(task => ({
             ...task,
@@ -234,6 +254,10 @@ export default function TodayScreen() {
           
           // Save directly to Supabase
           const tasksToSave = tasksWithUser.map(task => ({
+=======
+          // Transform all tasks for Supabase
+          const tasksToSave = todayTasks.map(task => ({
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
             id: task.id,
             title: task.title,
             time: task.time,
@@ -281,7 +305,7 @@ export default function TodayScreen() {
     const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
     
     const newTask = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       title: text.trim(),
       time: currentTime,
       date: moment().format('YYYY-MM-DD'),
@@ -363,119 +387,98 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Text style={styles.dateText}>{moment().format('ddd. MMM D').toLowerCase()}</Text>
-        </TouchableOpacity>
-      </View>
-
+      <StatusBar style="dark" />
       <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <View style={styles.listContainer}>
-          <View style={styles.mainContent}>
-            <View style={styles.centerContainer}>
-              {getEmptyStateMessage() && !isInputVisible && (
-                <View style={styles.emptyStateContainer}>
-                  <Text style={styles.emptyStateText}>{getEmptyStateMessage()}</Text>
-                  <TouchableOpacity 
-                    style={styles.addTaskButton}
-                    onPress={() => {
-                      setIsInputVisible(true);
-                      setTimeout(() => inputRef.current?.focus(), 100);
-                    }}
-                  >
-                    <Text style={styles.addTaskButtonText}>add something to do...</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              <View style={styles.taskListContainer}>
-                {tasks.map((item) => (
-                  <TouchableOpacity
-                    style={styles.reminderContainer}
-                    key={item.id}
-                    onPress={() => toggleTask(item.id)}
-                    onLongPress={() => handleDelete(item.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.reminderName,
-                        { 
-                          color: isOverdue(item.time) ? "#FF0000" : 
-                                 doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                        }
-                      ]}
-                    >
-                      {item.title}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.dateText}>
+              {moment().format('dddd MMM D').toLowerCase()}
+            </Text>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Text style={styles.settingsText}>settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.content}>
+          <View style={styles.taskListContainer}>
+            {tasks.map((task, index) => {
+              const isCompleted = doneTasks.includes(task.id);
+              return (
+                <TouchableOpacity
+                  key={task.id}
+                  style={styles.task}
+                  onPress={() => toggleTask(task.id)}
+                  onLongPress={() => handleDelete(task.id)}
+                >
+                  <View style={styles.taskTextContainer}>
+                    <Text style={[
+                      styles.taskText,
+                      { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                    ]}>
+                      {task.title}
                     </Text>
-                    <View
-                      style={[
-                        styles.timeContainer,
-                        { 
-                          borderColor: isOverdue(item.time) ? "#FF0000" : 
-                                      doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                        }
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.timeText,
-                          { 
-                            color: isOverdue(item.time) ? "#FF0000" : 
-                                   doneTasks.includes(item.id) ? "#212121" : "#CFCFCF" 
-                          }
-                        ]}
-                      >
-                        {item.time}
+                    <View style={styles.timeContainer}>
+                      <Text style={[
+                        styles.timeText,
+                        { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                      ]}>
+                        {task.time}
                       </Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {(isInputVisible || tasks.length > 0) && (
-                <View style={styles.inputSection}>
-                  <View style={styles.newItemContainer}>
-                    <TextInput
-                      ref={inputRef}
-                      placeholderTextColor={"#CFCFCF"}
-                      placeholder='+ add item...'
-                      style={styles.addItemInput}
-                      onChangeText={setText}
-                      onSubmitEditing={handleSubmit}
-                      value={text}
-                      autoCapitalize='none'
-                      onBlur={() => {
-                        if (text.trim() === '') {
-                          setIsInputVisible(false);
-                        }
-                      }}
-                    />
-                    <TouchableOpacity onPress={() => router.push('/timePicker')} style={styles.inputTimeContainer}>
-                      <Text style={styles.timeText}>{selectedTime}</Text>
-                    </TouchableOpacity>
                   </View>
-                </View>
-              )}
+                </TouchableOpacity>
+              );
+            })}
+            
+            {getEmptyStateMessage() && (
+              <Text style={styles.emptyStateText}>
+                {getEmptyStateMessage()}
+              </Text>
+            )}
+            
+            {/* Add Item as part of the list */}
+            <View style={styles.task}>
+              <View style={styles.taskInputContainer}>
+                <TextInput
+                  style={styles.taskText}
+                  placeholder="+ add item..."
+                  placeholderTextColor="#CFCFCF"
+                  value={text}
+                  onChangeText={setText}
+                  onSubmitEditing={handleSubmit}
+                />
+                <TouchableOpacity 
+                  style={styles.timeContainer}
+                  onPress={() => router.push('/timePicker')}
+                >
+                  <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
+                    {selectedTime}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
-      </KeyboardAvoidingView>
 
-      <View style={styles.bottomBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity key={tab} onPress={() => router.push(`/tabs/${tab}`)}>
-            <Text
-              style={[styles.tabText, tab === 'today' && styles.selectedText]}
-            >
-              {tab}
-            </Text>
+        <View style={styles.tabBar}>
+          <TouchableOpacity style={styles.tab}>
+            <Text style={[styles.tabText, { color: '#000000' }]}>today</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity 
+            style={styles.tab}
+            onPress={() => router.push('/tabs/tomorrow')}
+          >
+            <Text style={[styles.tabText, { color: '#CFCFCF' }]}>tomorrow</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -483,176 +486,99 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardView: {
+    flex: 1,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Platform.OS === 'web' ? 30 : 10,
-    height: Platform.OS === 'web' ? 80 : 100,
     width: '100%',
   },
   dateText: {
-    fontSize: Platform.select({ web: 32, default: 25 }),
+    fontSize: 24,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    textTransform: 'lowercase',
+    color: '#000000',
   },
-  listContainer: {
-    flex: 1,
-    width: Platform.OS === 'web' ? '45%' : '97%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    position: 'relative',
+  settingsButton: {
+    padding: 8,
   },
-  reminderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 10,
-    paddingHorizontal: 20,
-  },
-  reminderName: {
-    flex: 1,
-    fontSize: Platform.select({ web: 32, default: 25 }),
+  settingsText: {
+    fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'left',
-    color: '#4A4A4A',
-    flexShrink: 1,
-    marginRight: 10,
-    textTransform: 'lowercase',
+    color: '#000000',
   },
-  timeContainer: {
-    marginLeft: 5,
-    minWidth: Platform.select({ web: 80, default: 65 }),
-    height: Platform.select({ web: 32, default: 25 }),
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  timeText: {
-    fontSize: Platform.select({ web: 16, default: 14 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#CFCFCF',
-    textAlign: 'center',
-    lineHeight: Platform.select({ web: 24, default: 22 }),
-    padding: 1,
-    textTransform: 'lowercase',
-  },
-  newItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  addItemInput: {
+  content: {
     flex: 1,
-    fontSize: Platform.select({ web: 32, default: 25 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    marginRight: 10,
-    textTransform: 'lowercase',
-  },
-  inputTimeContainer: {
-    marginLeft: 10,
-    minWidth: Platform.select({ web: 80, default: 65 }),
-    height: Platform.select({ web: 32, default: 25 }),
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: Platform.select({ web: 50, default: 30 }),
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
-    width: '100%',
-    paddingVertical: 10,
-    gap: 40,
-  },
-  tabText: {
-    fontSize: Platform.select({ web: 32, default: 25 }),
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#ccc',
-    textTransform: 'lowercase',
-  },
-  selectedText: {
-    color: '#212121',
-    textTransform: 'lowercase',
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  mainContent: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerContainer: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
   },
   taskListContainer: {
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Platform.select({ web: 0, default: 10 }),
-    maxWidth: Platform.select({ web: '100%', default: 500 }),
-    alignSelf: 'center',
+    paddingHorizontal: 20,
   },
-  inputSection: {
+  task: {
     width: '100%',
-    padding: 20,
+    paddingVertical: 10,
     alignItems: 'center',
   },
-  addTaskButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 40,
+  taskTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  addTaskButtonText: {
+  taskText: {
+    fontSize: 22,
+    fontFamily: 'Nunito_800ExtraBold',
+    textAlign: 'center',
+    color: '#000000',
+  },
+  timeContainer: {
+    borderWidth: 1,
+    borderColor: '#CFCFCF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  timeText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
-    textTransform: 'lowercase',
+    textAlign: 'center',
+    color: '#000000',
+  },
+  taskInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    justifyContent: 'center',
+  },
+  tab: {
+    marginHorizontal: 10,
+  },
+  tabText: {
+    fontSize: 25,
+    fontFamily: 'Nunito_800ExtraBold',
   },
   emptyStateText: {
-    fontSize: Platform.select({ web: 28, default: 21 }),
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
-    color: '#212121',
+    color: '#CFCFCF',
     textAlign: 'center',
-    marginBottom: 20,
-    textTransform: 'lowercase',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-    width: '100%',
+    marginTop: 20,
   },
 });

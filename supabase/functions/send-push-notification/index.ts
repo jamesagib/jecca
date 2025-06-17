@@ -1,20 +1,20 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { DateTime } from 'https://esm.sh/luxon@3.4.3'
 
-const EXPO_PUSH_API = 'https://exp.host/--/api/v2/push/send';
+const EXPO_PUSH_API = 'https://exp.host/--/api/v2/push/send'
 
 interface PushMessage {
   to: string
   title: string
   body: string
+  sound: string
   data?: any
-  sound?: string
-  badge?: number
 }
 
 serve(async (req) => {
   try {
-    const { reminder_id, user_id } = await req.json()
+    const { reminder_id, user_id, timezone, scheduled_time } = await req.json()
     
     // Create Supabase client
     const supabaseClient = createClient(
@@ -50,16 +50,22 @@ serve(async (req) => {
       )
     }
 
+    // Convert scheduled time to user's timezone
+    const userTime = DateTime.fromISO(scheduled_time)
+      .setZone(timezone || 'local')
+      .toFormat('t')
+
     // Prepare the push notification message
     const message: PushMessage = {
       to: tokens[0].push_token, // Using the first token for now
       title: 'Reminder',
-      body: reminder.title,
+      body: `${reminder.title} at ${userTime}`,
       sound: 'default',
       data: {
         reminder_id: reminder.id,
         time: reminder.time,
-        date: reminder.date
+        date: reminder.date,
+        timezone: timezone
       }
     }
 

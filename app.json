@@ -2,13 +2,14 @@
   "expo": {
     "name": "jecca",
     "slug": "jecca",
-    "version": "1.0.0",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/jecca.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "jecca",
     "deepLinking": true,
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -25,8 +26,26 @@
       },
       "bundleIdentifier": "com.webcheer.jecca",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "NSFaceIDUsageDescription": "Allow jecca to access your Face ID biometric data.",
+        "NSPhotoLibraryUsageDescription": "Allow jecca to access your photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow jecca to save photos."
+      },
+      "config": {
+        "usesNonExemptEncryption": false,
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+        }
+      },
+      "associatedDomains": [],
+      "usesIcloudStorage": false,
+      "buildNumber": "1",
+      "urlScheme": [
+        "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -54,7 +73,14 @@
           "color": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "webcheer"
+        }
+      ]
     ],
     "notification": {
       "icon": "./assets/splash-icon.png",

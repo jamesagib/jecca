@@ -1,4 +1,5 @@
 import { supabaseUrl, supabaseAnonKey } from './supabaseConfig';
+import moment from 'moment';
 
 // --- PUSH NOTIFICATIONS ---
 export async function savePushToken(userId, pushToken, deviceId, accessToken) {
@@ -132,10 +133,11 @@ export async function upsertReminders(reminders, accessToken) {
       date: reminder.date,
       completed: reminder.completed || false,
       user_id: reminder.user_id,
-      notification_id: reminder.notification_id, // Using the correct field name
+      notification_id: reminder.notification_id,
       synced_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      timezone: moment.tz.guess() // Add user's timezone
     }));
 
     console.log('Formatted reminders:', JSON.stringify(formattedReminders, null, 2));
@@ -157,7 +159,45 @@ export async function upsertReminders(reminders, accessToken) {
       throw new Error(error.message || 'Failed to upsert reminders');
     }
 
-    return { data: await res.json(), error: null };
+    const data = await res.json();
+
+    // Schedule push notifications for each reminder
+    for (const reminder of formattedReminders) {
+      try {
+        // Only schedule if not completed and has a future date/time
+        if (!reminder.completed) {
+          // Create a moment object in the user's timezone
+          const userTimezone = reminder.timezone || moment.tz.guess();
+          const reminderDate = moment.tz(
+            reminder.date + ' ' + reminder.time,
+            'YYYY-MM-DD h:mma',
+            userTimezone
+          );
+          const now = moment().tz(userTimezone);
+          
+          if (reminderDate.isAfter(now)) {
+            await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                reminder_id: reminder.id,
+                user_id: reminder.user_id,
+                timezone: userTimezone,
+                scheduled_time: reminderDate.toISOString()
+              }),
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error scheduling push notification:', notificationError);
+        // Continue with other reminders even if one fails
+      }
+    }
+
+    return { data, error: null };
   } catch (error) {
     console.error('Error upserting reminders:', error);
     return { data: null, error };
@@ -219,6 +259,7 @@ export async function deleteReminder(reminderId, userId, accessToken) {
   }
 }
 
+<<<<<<< HEAD
 // --- AUTH ---
 export async function sendOtp(email) {
   try {
@@ -252,6 +293,12 @@ export async function sendOtp(email) {
 
 export async function verifyOtp(email, token) {
   try {
+=======
+export async function verifyOtp(email, token) {
+  try {
+    console.log('Starting OTP verification for:', email);
+    
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
     const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
       method: 'POST',
       headers: {
@@ -261,6 +308,7 @@ export async function verifyOtp(email, token) {
       body: JSON.stringify({
         email,
         token,
+<<<<<<< HEAD
         type: 'email'
       }),
     });
@@ -268,11 +316,199 @@ export async function verifyOtp(email, token) {
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.message || 'Failed to verify OTP');
+=======
+        type: 'magiclink',
+        gotrue_meta_security: {}
+      }),
+    });
+
+    const data = await res.json();
+    console.log('Verify response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Verification failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Invalid code.' }
+      };
+    }
+
+    // For successful verification, we should have both user and access_token
+    if (!data.user || !data.access_token) {
+      console.error('Invalid response structure:', data);
+      return {
+        data: null,
+        error: { message: 'Invalid response from server - missing user or token' }
+      };
+    }
+
+    // Return the data in the expected format
+    return { 
+      data: {
+        user: data.user,
+        session: {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in: data.expires_in,
+        }
+      }, 
+      error: null 
+    };
+  } catch (error) {
+    console.error('Error in verifyOtp:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to verify code.' }
+    };
+  }
+}
+
+export async function sendOtp(email) {
+  try {
+    console.log('Sending OTP to:', email);
+    
+    const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        type: 'magiclink',
+        gotrue_meta_security: {},
+        options: {
+          data: {
+            email
+          }
+        }
+      }),
+    });
+
+    const data = await res.json();
+    console.log('OTP send response:', {
+      status: res.status,
+      ok: res.ok,
+      data
+    });
+
+    if (!res.ok) {
+      console.error('Failed to send OTP:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Failed to send code.' }
+      };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to send code.' }
+    };
+  }
+}
+
+export async function signInWithGoogleIdToken(idToken) {
+  try {
+    console.log('Starting Google sign in with Supabase...');
+    
+    // Add timeout to the fetch request
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=id_token&provider=google`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        provider: 'google',
+        id_token: idToken,
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    const data = await res.json();
+    console.log('Supabase Google sign in response:', {
+      status: res.status,
+      ok: res.ok,
+      error: data.error,
+      error_description: data.error_description
+    });
+
+    if (!res.ok) {
+      console.error('Supabase Google sign in failed:', data);
+      return { 
+        data: null, 
+        error: { message: data.error_description || data.error || 'Failed to sign in with Google' }
+      };
+    }
+
+    // Validate response data
+    if (!data.user || !data.access_token) {
+      console.error('Invalid response structure from Supabase:', data);
+      return {
+        data: null,
+        error: { message: 'Invalid response from server - missing user or token' }
+      };
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error in Google sign in:', error);
+    if (error.name === 'AbortError') {
+      return { 
+        data: null, 
+        error: { message: 'Sign in request timed out. Please try again.' }
+      };
+    }
+    return { 
+      data: null, 
+      error: { message: error.message || 'Failed to sign in with Google' }
+    };
+  }
+}
+
+export async function cleanupReminders(userId, accessToken) {
+  try {
+    const timezone = moment.tz.guess(); // Get user's timezone
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/cleanup-reminders`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          timezone: timezone
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to cleanup reminders');
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
     }
 
     return { data: await res.json(), error: null };
   } catch (error) {
+<<<<<<< HEAD
     console.error('Error verifying OTP:', error);
+=======
+    console.error('Error cleaning up reminders:', error);
+>>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
     return { data: null, error };
   }
 } 

@@ -1,285 +1,298 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useState, useEffect, useCallback } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import { storage } from './utils/storage';
 import moment from 'moment';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS,
+  cancelAnimation
+} from 'react-native-reanimated';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TIME_KEY = 'selected_time';
 
-export default function TimePicker() {
-  const router = useRouter();
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['50%'], []); 
-  const [time, setTime] = useState(() => {
-    const now = new Date();
-    now.setSeconds(0);
-    now.setMilliseconds(0);
-    return now;
-  });
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+const getCurrentTimeComponents = () => {
+  try {
+    const now = moment();
+    const hour = now.format('h'); // 12-hour format without leading zero
+    const minute = now.format('mm'); // minutes with leading zero
+    const period = now.format('a').toLowerCase(); // 'am' or 'pm' in lowercase
+    return { hour, minute, period };
+  } catch (error) {
+    console.error('Error getting current time:', error);
+    // Return default values if there's an error
+    return { hour: '12', minute: '00', period: 'am' };
+  }
+};
 
-  useEffect(() => {
-    const loadInitialTime = async () => {
-      try {
-        const storedTime = await storage.getItem(TIME_KEY);
-        if (storedTime) {
-          const parsedTime = moment(storedTime, 'h:mma');
-          if (parsedTime.isValid()) {
-            setTime(parsedTime.toDate());
-          }
-        }
-      } catch (error) {
-        console.error('Error loading time:', error);
-      } finally {
-        setIsLoading(false);
-        setIsOpen(true);
+export default function TimePickerScreen() {
+  const router = useRouter();
+  const [timeComponents, setTimeComponents] = useState(getCurrentTimeComponents());
+  const [selectedHour, setSelectedHour] = useState(timeComponents.hour);
+  const [selectedMinute, setSelectedMinute] = useState(timeComponents.minute);
+  const [selectedPeriod, setSelectedPeriod] = useState(timeComponents.period);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const translateY = useSharedValue(SCREEN_HEIGHT);
+
+  const initializeTimePicker = useCallback(async () => {
+    try {
+      const storedTime = await storage.getItem(TIME_KEY);
+      if (storedTime) {
+        const [time, period] = storedTime.toLowerCase().split(/(?=[ap]m)/);
+        const [hour, minute = '00'] = time.split(':');
+        setSelectedHour(hour);
+        setSelectedMinute(minute);
+        setSelectedPeriod(period);
       }
-    };
-    loadInitialTime();
+      setIsReady(true);
+    } catch (error) {
+      console.error('Error loading time:', error);
+      setIsReady(true); // Still mark as ready to show the picker
+    }
   }, []);
 
-  const handleSheetChanges = useCallback((index) => {
-    if (index === -1) {
+  useEffect(() => {
+    initializeTimePicker();
+  }, [initializeTimePicker]);
+
+  useEffect(() => {
+    if (isReady) {
+      // Start entrance animation only after initialization
+      const timeout = setTimeout(() => {
+        translateY.value = withSpring(0, {
+          damping: 20,
+          mass: 0.7,
+          stiffness: 100,
+          overshootClamping: true,
+        });
+      }, 100);
+
+      return () => {
+        clearTimeout(timeout);
+        cancelAnimation(translateY);
+      };
+    }
+  }, [isReady, translateY]);
+
+  const handleClose = useCallback(() => {
+    try {
+      translateY.value = withTiming(SCREEN_HEIGHT, {
+        duration: 250,
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setIsVisible)(false);
+          runOnJS(router.back)();
+        }
+      });
+    } catch (error) {
+      console.error('Error during close animation:', error);
+      // Fallback to direct close if animation fails
+      setIsVisible(false);
       router.back();
     }
-  }, [router]);
+  }, [router, translateY]);
 
-  const renderBackdrop = useCallback(props => (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      opacity={0.5}
-      pressBehavior="close"
-    />
-  ), []);
-
-  const saveAndClose = async (selectedTime) => {
+  const handleSave = useCallback(async () => {
     try {
-      const formattedTime = moment(selectedTime).format('h:mma');
+      const formattedTime = `${selectedHour}:${selectedMinute}${selectedPeriod}`;
       await storage.setItem(TIME_KEY, formattedTime);
-      router.back();
+      handleClose();
     } catch (error) {
       console.error('Error saving time:', error);
+      handleClose();
     }
-  };
+  }, [selectedHour, selectedMinute, selectedPeriod, handleClose]);
 
-  const handleTimeChange = (event, selectedDate) => {
-    if (selectedDate) {
-      setTime(selectedDate);
-      if (Platform.OS === 'android') {
-        saveAndClose(selectedDate);
-      }
-    }
-  };
-
-  const handlePresetTime = async (presetTimeStr) => {
-    const parsedTime = moment(presetTimeStr, 'h:mma').toDate();
-    setTime(parsedTime);
-    await saveAndClose(parsedTime);
-  };
-
-  const WebTimePicker = () => {
-    const handleWebTimeChange = async (event) => {
-      const timeString = event.target.value;
-      if (timeString) {
-        const [hours, minutes] = timeString.split(':');
-        const date = moment().hours(parseInt(hours)).minutes(parseInt(minutes)).toDate();
-        setTime(date);
-        await saveAndClose(date);
-      }
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
     };
+  });
 
-    return (
-      <input
-        type="time"
-        onChange={handleWebTimeChange}
-        value={moment(time).format('HH:mm')}
-        style={{
-          fontSize: '16px',
-          padding: '8px',
-          borderRadius: '8px',
-          border: '1px solid #CFCFCF',
-          backgroundColor: '#f5f5f5',
-          fontFamily: 'Nunito_800ExtraBold',
-          width: '120px',
-          marginBottom: '20px'
-        }}
-      />
-    );
-  };
-
-  const presetTimes = [
-    '7:00am', '8:00am', '9:00am', '10:00am',
-    '11:00am', '12:00pm', '1:00pm', '2:00pm',
-    '3:00pm', '4:00pm', '5:00pm', '6:00pm',
-    '7:00pm', '8:00pm', '9:00pm', '10:00pm'
-  ];
-
-  if (isLoading) {
-    return null;
-  }
+  if (!isVisible || !isReady) return null;
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={isOpen ? 0 : -1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        enablePanDownToClose={true}
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={styles.handleIndicator}
-        backgroundStyle={styles.sheetBackground}
-        handleStyle={styles.handleStyle}
+    <View style={StyleSheet.absoluteFill}>
+      <Modal
+        transparent
+        visible={isVisible}
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={handleClose}
       >
-        <BottomSheetView style={styles.contentContainer}>
-          <View style={styles.presetWrapper}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.presetContainer}
-              contentContainerStyle={styles.presetContentContainer}
-            >
-              {presetTimes.map((timeStr) => (
+        <View style={styles.container}>
+          <TouchableOpacity 
+            style={styles.backdrop} 
+            activeOpacity={1} 
+            onPress={handleClose}
+          />
+          <Animated.View 
+            style={[
+              styles.sheet,
+              animatedStyle
+            ]}
+          >
+            <View style={styles.handle} />
+            <Text style={styles.title}>select time</Text>
+
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedHour}
+                onValueChange={setSelectedHour}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                {Array.from({ length: 12 }, (_, i) => (i + 1).toString()).map(hour => (
+                  <Picker.Item key={hour} label={hour} value={hour} />
+                ))}
+              </Picker>
+
+              <Text style={styles.pickerSeparator}>:</Text>
+
+              <Picker
+                selectedValue={selectedMinute}
+                onValueChange={setSelectedMinute}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(minute => (
+                  <Picker.Item key={minute} label={minute} value={minute} />
+                ))}
+              </Picker>
+
+              <Picker
+                selectedValue={selectedPeriod}
+                onValueChange={setSelectedPeriod}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                {['am', 'pm'].map(period => (
+                  <Picker.Item key={period} label={period} value={period} />
+                ))}
+              </Picker>
+            </View>
+
+            <View style={styles.presetContainer}>
+              {['7:00am', '8:00am', '9:00am', '12:00pm', '3:00pm', '6:00pm'].map(time => (
                 <TouchableOpacity
-                  key={timeStr}
-                  style={[
-                    styles.presetButton,
-                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonSelected
-                  ]}
-                  onPress={() => handlePresetTime(timeStr)}
+                  key={time}
+                  style={styles.presetButton}
+                  onPress={async () => {
+                    await storage.setItem(TIME_KEY, time);
+                    handleClose();
+                  }}
                 >
-                  <Text style={[
-                    styles.presetButtonText,
-                    moment(timeStr, 'h:mma').isSame(moment(time), 'minute') && styles.presetButtonTextSelected
-                  ]}>
-                    {timeStr}
-                  </Text>
+                  <Text style={styles.timeText}>{time}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </View>
+            </View>
 
-          <View style={styles.timePickerWrapper}>
-            {Platform.OS === 'web' ? (
-              <WebTimePicker />
-            ) : (
-              <DateTimePicker
-                testID="timePicker"
-                value={time}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleTimeChange}
-                style={styles.timePicker}
-              />
-            )}
-          </View>
-
-          {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => saveAndClose(time)}
+              style={styles.saveButton}
+              onPress={handleSave}
             >
-              <Text style={styles.confirmButtonText}>Set Time</Text>
+              <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
-          )}
-        </BottomSheetView>
-      </BottomSheet>
-    </GestureHandlerRootView>
+          </Animated.View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'flex-end',
     backgroundColor: 'transparent',
-    display: 'flex',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    height: SCREEN_HEIGHT * 0.65,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#CFCFCF',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#000000',
+  },
+  pickerContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 30,
   },
-  sheetBackground: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-  },
-  handleStyle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-  },
-  handleIndicator: {
-    backgroundColor: '#CFCFCF',
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
-  contentContainer: {
+  picker: {
     flex: 1,
-    padding: 16,
+    height: 200,
   },
-  presetWrapper: {
-    marginTop: 8,
-    marginBottom: 16,
+  pickerItem: {
+    fontSize: 22,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#000000',
+  },
+  pickerSeparator: {
+    fontSize: 24,
+    fontFamily: 'Nunito_800ExtraBold',
+    marginHorizontal: 10,
+    color: '#000000',
   },
   presetContainer: {
-    flexGrow: 0,
-  },
-  presetContentContainer: {
-    paddingHorizontal: 4,
-    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 30,
   },
   presetButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    minWidth: 80,
-    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  presetButtonText: {
-    color: '#212121',
-    fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
-  },
-  presetButtonSelected: {
-    backgroundColor: '#212121',
-  },
-  presetButtonTextSelected: {
-    color: 'white',
-  },
-  timePickerWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  timePicker: {
-    width: Platform.OS === 'ios' ? '100%' : 'auto',
-    height: Platform.OS === 'ios' ? 200 : 'auto',
-  },
-  confirmButton: {
-    alignSelf: 'center',
-    backgroundColor: '#212121',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    width: '90%',
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  confirmButtonText: {
-    color: 'white',
+  timeText: {
     fontSize: 16,
     fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
+    color: '#000000',
   },
-});
+  saveButton: {
+    backgroundColor: '#000000',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: '#FFFFFF',
+  },
+}); 
