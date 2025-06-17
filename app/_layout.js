@@ -2,7 +2,6 @@ import 'react-native-get-random-values';
 import 'text-encoding'; // Polyfill for TextEncoder
 import React from 'react';
 import moment from 'moment-timezone';
-import 'moment/locale/en';
 import { Stack } from 'expo-router';
 import { useEffect, useState, useCallback } from 'react';
 import { Platform, View, Text, ActivityIndicator } from 'react-native';
