@@ -21,7 +21,7 @@ export default function Index() {
   }
 
   // If not authenticated, redirect to onboarding
-  return <Redirect href="/onboarding" />;
+  return <Redirect href="/onboarding1" />;
 }
 
 const styles = StyleSheet.create({

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { signInWithPassword, signUpWithEmail, signInWithGoogleIdToken, sendOtp, verifyOtp } from './supabaseApi';
 import { storage } from './storage';
-import { identifyUser, resetIdentity } from './analytics';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -16,11 +15,6 @@ const useAuthStore = create((set) => ({
     set({ user });
     if (user) {
       await storage.saveAuthData(user, useAuthStore.getState().accessToken);
-      // Identify user in PostHog
-      await identifyUser(user.id, {
-        email: user.email,
-        auth_provider: user.app_metadata?.provider || 'email',
-      });
     }
   },
 
@@ -81,11 +75,6 @@ const useAuthStore = create((set) => ({
         };
         
         await storage.saveAuthData(updatedUser, authData.accessToken);
-        // Re-identify user in PostHog after initialization
-        await identifyUser(updatedUser.id, {
-          email: updatedUser.email,
-          auth_provider: updatedUser.app_metadata?.provider || 'email',
-        });
         set({ 
           user: updatedUser, 
           accessToken: authData.accessToken,
@@ -142,92 +131,7 @@ const useAuthStore = create((set) => ({
 
   signOut: async () => {
     await storage.clearAuthData();
-    await resetIdentity(); // Reset PostHog identity
     set({ user: null, accessToken: null });
-  },
-
-  initialize: async () => {
-    try {
-      set({ loading: true });
-      const authData = await storage.getAuthData();
-      
-      // Check if onboarding is complete
-      const onboardingStatus = await storage.getItem('onboardingComplete');
-      const hasCompletedOnboarding = onboardingStatus === 'true';
-      
-      if (authData?.user?.id && authData?.accessToken) {
-        // Validate the token by making a test API call
-        try {
-          const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-            headers: {
-              'Authorization': `Bearer ${authData.accessToken}`,
-              'apikey': supabaseAnonKey
-            }
-          });
-          
-          if (response.ok) {
-            console.log('Auth token validated successfully');
-            set({ 
-              user: authData.user, 
-              accessToken: authData.accessToken,
-              loading: false,
-              initialized: true 
-            });
-            return;
-          } else {
-            console.log('Auth token validation failed, clearing auth data');
-            await storage.clearAuthData();
-            set({ 
-              user: null,
-              accessToken: null,
-              loading: false,
-              initialized: true 
-            });
-            return;
-          }
-        } catch (error) {
-          console.error('Error validating auth token:', error);
-          await storage.clearAuthData();
-          set({ 
-            user: null,
-            accessToken: null,
-            loading: false,
-            initialized: true 
-          });
-          return;
-        }
-      }
-      
-      console.log('No valid auth data found during initialization');
-      
-      // If onboarding is complete and no user, don't clear auth data
-      if (hasCompletedOnboarding) {
-        console.log('Onboarding complete, keeping existing auth state');
-        set({ 
-          user: authData?.user || null,
-          accessToken: authData?.accessToken || null,
-          loading: false, 
-          initialized: true 
-        });
-      } else {
-        set({ 
-          user: null,
-          accessToken: null,
-          loading: false, 
-          initialized: true 
-        });
-      }
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-      await storage.clearAuthData();
-      set({ 
-        user: null,
-        accessToken: null,
-        loading: false, 
-        initialized: true,
-        error: error.message 
-      });
-    }
   },
 
   handleAuthStateChange: ({ event, session }) => {

@@ -29,6 +29,7 @@ const TIME_KEY = 'selected_time';
 export default function TodayScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { loadSettings } = useSettingsStore();
 
   useEffect(() => {
     if (!user) {
@@ -67,9 +68,6 @@ export default function TodayScreen() {
     };
 
     loadInitialData();
-  }, []);
-
-  useEffect(() => {
     loadSettings();
   }, []);
 

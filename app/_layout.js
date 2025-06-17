@@ -10,10 +10,8 @@ import { storage } from './utils/storage';
 import { useAuthStore } from './utils/auth';
 import { syncReminders } from './utils/sync';
 import { registerForPushNotifications } from './utils/notifications';
-import { PostHogProvider } from 'posthog-react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MenuProvider } from 'react-native-popup-menu';
-import { AuthProvider } from './utils/auth';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -89,34 +87,30 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <PostHogProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <MenuProvider>
-              <Stack>
-                <Stack.Screen
-                  name="index"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-                <Stack.Screen
-                  name="home"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-                <Stack.Screen
-                  name="onboarding"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-              </Stack>
-            </MenuProvider>
-          </GestureHandlerRootView>
-        </PostHogProvider>
-      </AuthProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <MenuProvider>
+          <Stack>
+            <Stack.Screen
+              name="index"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="home"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="onboarding"
+              options={{
+                headerShown: false,
+              }}
+            />
+          </Stack>
+        </MenuProvider>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

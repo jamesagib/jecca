@@ -32,7 +32,7 @@ export default function EmailAuthScreen() {
         await storage.setItem('onboardingComplete', 'true');
         // Navigate to onboarding2 after a short delay
         setTimeout(() => {
-          router.push('/onboarding2');
+          router.push('/home');
         }, 100);
       }
     } catch (err) {
