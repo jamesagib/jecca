@@ -1,8 +1,19 @@
 import 'dotenv/config';
 
-export default ({
+module.exports = ({
   config
 }) => {
+  // Ensure config.expo and config.expo.plugins exist
+  if (!config.expo) {
+    config.expo = {};
+  }
+  if (!config.expo.plugins) {
+    config.expo.plugins = [];
+  }
+
+  // Add our custom plugin
+  config.expo.plugins.push('./plugins/withUseModularHeaders.js');
+
   return {
     ...config, // Preserves existing app.json configurations
     expo: {
