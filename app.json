@@ -72,14 +72,6 @@
           "icon": "./assets/splash-icon.png",
           "color": "#ffffff"
         }
-      ],
-      [
-        "@sentry/react-native/expo",
-        {
-          "url": "https://sentry.io/",
-          "project": "react-native",
-          "organization": "webcheer"
-        }
       ]
     ],
     "notification": {
