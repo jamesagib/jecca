@@ -28,7 +28,6 @@ const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
-<<<<<<< HEAD
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -36,11 +35,6 @@ export default function TodayScreen() {
       router.replace('/onboarding1');
     }
   }, [user, router]);
-=======
-  const user = useAuthStore(state => state.user);
-  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
-  const loadSettings = useSettingsStore(state => state.loadSettings);
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
@@ -242,7 +236,6 @@ export default function TodayScreen() {
       // If user is logged in, save to Supabase first
       if (user && accessToken) {
         try {
-<<<<<<< HEAD
           // Add user information to tasks before saving
           const tasksWithUser = todayTasks.map(task => ({
             ...task,
@@ -254,10 +247,6 @@ export default function TodayScreen() {
           
           // Save directly to Supabase
           const tasksToSave = tasksWithUser.map(task => ({
-=======
-          // Transform all tasks for Supabase
-          const tasksToSave = todayTasks.map(task => ({
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
             id: task.id,
             title: task.title,
             time: task.time,

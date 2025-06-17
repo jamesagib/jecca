@@ -1,8 +1,7 @@
-const {
-  getSentryExpoConfig
-} = require("@sentry/react-native/metro");
+// Learn more https://docs.expo.io/guides/customizing-metro
+const { getDefaultConfig } = require('@expo/metro-config');
 
-const config = getSentryExpoConfig(__dirname);
+const config = getDefaultConfig(__dirname);
 
 // Add support for Node.js core modules
 config.resolver.extraNodeModules = {

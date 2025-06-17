@@ -1,32 +1,33 @@
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { storage } from './utils/storage';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useRouter, Redirect } from 'expo-router';
 import { useAuthStore } from './utils/auth';
-import { View } from 'react-native';
 
-export default function StartScreen() {
+export default function Index() {
+  const { user, initialized } = useAuthStore();
   const router = useRouter();
-  const { initialized } = useAuthStore();
 
-  useEffect(() => {
-    let mounted = true;
+  if (!initialized) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
-    async function navigate() {
-      if (!mounted || !initialized) return;
-      
-      try {
-        const onboardingComplete = await storage.getItem('onboardingComplete') === 'true';
-        const targetRoute = onboardingComplete ? '/tabs/today' : '/onboarding1';
-        await router.replace(targetRoute);
-      } catch (error) {
-        await storage.setItem('onboardingComplete', 'false');
-        await router.replace('/onboarding1');
-      }
-    }
+  // If user is authenticated, redirect to home
+  if (user) {
+    return <Redirect href="/home" />;
+  }
 
-    navigate();
-    return () => { mounted = false; };
-  }, [initialized, router]);
-
-  return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+  // If not authenticated, redirect to onboarding
+  return <Redirect href="/onboarding" />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

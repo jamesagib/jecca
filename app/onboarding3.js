@@ -1,12 +1,7 @@
 import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { storage } from './utils/storage';
-<<<<<<< HEAD
 import { useAuthStore } from './utils/auth';
-=======
-import { registerForPushNotifications } from './utils/notifications';
-import { syncReminders } from './utils/sync';
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -14,7 +9,6 @@ export default function OnboardingScreen() {
 
   const completeOnboarding = async () => {
     try {
-<<<<<<< HEAD
       console.log('Completing onboarding...');
       
       const { status } = await Notifications.requestPermissionsAsync();
@@ -34,37 +28,12 @@ export default function OnboardingScreen() {
             console.log('Alert dismissed, navigating to today');
             router.replace('/tabs/today');
           }}]
-=======
-      const pushToken = await registerForPushNotifications();
-
-      await storage.setItem('onboardingComplete', 'true');
-      
-      // Attempt to sync reminders after setting onboarding complete
-      try {
-        await syncReminders();
-      } catch (syncError) {
-        console.error('Error syncing reminders during onboarding completion:', syncError);
-        // Decide if you want to track this error separately or inform the user
-        // For now, we'll just log it and proceed
-      }
-
-      if (pushToken) {
-        router.replace('/tabs/today');
-      } else {
-        Alert.alert(
-          'Notifications Setup',
-          'You can enable/disable notifications in your device settings anytime.',
-          [{ text: 'OK', onPress: () => router.replace('/tabs/today') }]
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
         );
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
       await storage.setItem('onboardingComplete', 'true');
-<<<<<<< HEAD
       console.log('Onboarding marked complete (error), navigating to today');
-=======
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
       router.replace('/tabs/today');
     }
   };

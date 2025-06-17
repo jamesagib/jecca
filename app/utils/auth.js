@@ -146,7 +146,6 @@ const useAuthStore = create((set) => ({
     set({ user: null, accessToken: null });
   },
 
-<<<<<<< HEAD
   initialize: async () => {
     try {
       set({ loading: true });
@@ -231,8 +230,6 @@ const useAuthStore = create((set) => ({
     }
   },
 
-=======
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
   handleAuthStateChange: ({ event, session }) => {
     if (session?.user) {
       storage.saveAuthData(session.user, session.access_token);
@@ -261,7 +258,6 @@ const useAuthStore = create((set) => ({
       const { data, error } = await verifyOtp(email, token);
       if (error) throw new Error(error.message || 'Invalid code.');
       
-<<<<<<< HEAD
       // Ensure we have both user and session data
       if (!data.user || !data.session) {
         throw new Error('Invalid response from server');
@@ -280,18 +276,6 @@ const useAuthStore = create((set) => ({
 
       // Set onboarding complete since we have a valid user
       await storage.setItem('onboardingComplete', 'true');
-=======
-      if (data?.user && data?.access_token) {
-        await storage.saveAuthData(data.user, data.access_token);
-        set({ 
-          user: data.user, 
-          accessToken: data.access_token,
-          loading: false,
-          otpSent: false,
-          otpEmail: ''
-        });
-      }
->>>>>>> f8ad32121dcf92b929fc992517ef74f31360cade
       
       return { data };
     } catch (error) {
