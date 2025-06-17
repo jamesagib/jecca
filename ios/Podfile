@@ -38,7 +38,6 @@ elsif podfile_properties.key?('ios.flipper') then
 end
 
 target 'jecca' do
-  # use_modular_headers!  # Disabled because it conflicts with New Architecture (duplicates ReactCommon)
   use_expo_modules!
   config = use_native_modules!
 
@@ -46,13 +45,14 @@ target 'jecca' do
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
 
   use_react_native!(
-    :path => config[:reactNativePath],
+  :path => config[:reactNativePath],
     :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     # Note that if you have use_frameworks! enabled, Flipper will not work if enabled
-    :flipper_configuration => flipper_config
-  )
+    :flipper_configuration => flipper_config,
+  :modular_headers => true
+)
 
   post_install do |installer|
     react_native_post_install(
@@ -80,4 +80,8 @@ target 'jecca' do
       Pod::UI.warn e
     end
   end
+end
+
+pre_install do |installer|
+  installer.set_use_modular_headers_for_pod('React-jsinspector')
 end

@@ -72,7 +72,8 @@
           "icon": "./assets/splash-icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "./plugins/withReactJsinspectorModularHeaders"
     ],
     "notification": {
       "icon": "./assets/splash-icon.png",

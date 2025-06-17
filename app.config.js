@@ -13,7 +13,8 @@ module.exports = ({
 
   // Remove the custom Podfile patch plugin — New Arch no longer needs it and it
   // breaks with modular headers.
-  // config.expo.plugins.push('./plugins/withUseModularHeaders.js');
+  config.expo.plugins.push('./plugins/withUseModularHeaders.js');
+  config.expo.plugins.push('./plugins/withReactJsinspectorModularHeaders.js');
 
   return {
     ...config, // Preserves existing app.json configurations
