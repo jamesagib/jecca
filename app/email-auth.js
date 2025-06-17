@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from './utils/auth';
+import { storage } from './utils/storage';
 
 export default function EmailAuthScreen() {
   const [email, setEmail] = useState('');
@@ -15,19 +16,29 @@ export default function EmailAuthScreen() {
   const otpEmail = useAuthStore((state) => state.otpEmail);
   const router = useRouter();
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = useCallback(async () => {
     if (!email) return;
     const result = await sendOtp(email);
     if (result) setMode('code');
-  };
+  }, [email, sendOtp]);
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = useCallback(async () => {
     if (!otpEmail || !code) return;
-    const result = await verifyOtp(otpEmail, code);
-    if (result && result.data && result.data.user) {
-      router.push('/onboarding2');
+    
+    try {
+      const result = await verifyOtp(otpEmail, code);
+      if (result?.data?.user) {
+        // Set onboarding complete to true since we have a valid user
+        await storage.setItem('onboardingComplete', 'true');
+        // Navigate to onboarding2 after a short delay
+        setTimeout(() => {
+          router.push('/onboarding2');
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
     }
-  };
+  }, [otpEmail, code, verifyOtp, router]);
 
   return (
     <View style={styles.container}>

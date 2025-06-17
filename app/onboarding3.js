@@ -2,26 +2,39 @@ import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { storage } from './utils/storage';
+import { useAuthStore } from './utils/auth';
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
 
   const completeOnboarding = async () => {
     try {
+      console.log('Completing onboarding...');
+      
       const { status } = await Notifications.requestPermissionsAsync();
+      console.log('Notification permission status:', status);
+      
       if (status === 'granted') {
         await storage.setItem('onboardingComplete', 'true');
+        console.log('Onboarding marked complete, navigating to today');
         router.replace('/tabs/today');
       } else {
         await storage.setItem('onboardingComplete', 'true');
+        console.log('Onboarding marked complete (no notifications), navigating to today');
         Alert.alert(
           'Notifications Disabled',
           'You can enable notifications in your device settings to receive reminders.',
-          [{ text: 'OK', onPress: () => router.replace('/tabs/today') }]
+          [{ text: 'OK', onPress: () => {
+            console.log('Alert dismissed, navigating to today');
+            router.replace('/tabs/today');
+          }}]
         );
       }
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      await storage.setItem('onboardingComplete', 'true');
+      console.log('Onboarding marked complete (error), navigating to today');
       router.replace('/tabs/today');
     }
   };

@@ -40,6 +40,12 @@ export default function TomorrowScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
 
+  useEffect(() => {
+    if (!user) {
+      router.replace('/onboarding1');
+    }
+  }, [user, router]);
+
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
@@ -220,10 +226,8 @@ export default function TomorrowScreen() {
 
   const saveTasks = async (tomorrowTasks) => {
     try {
-      // Get auth data from storage
-      const authData = await storage.getAuthData();
-      const user = authData?.user;
-      const accessToken = authData?.accessToken;
+      // Get auth data from store instead of storage
+      const { user, accessToken } = useAuthStore.getState();
       const tomorrow = moment().add(1, 'day').format('YYYY-MM-DD');
       
       // If user is logged in, save to Supabase first
@@ -264,7 +268,6 @@ export default function TomorrowScreen() {
             console.error('Detailed error:', upsertError);
             throw upsertError;
           }
-          if (upsertError) throw upsertError;
         } catch (syncError) {
           console.error('Error saving to Supabase:', syncError);
           // Continue with local storage even if Supabase save fails

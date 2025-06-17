@@ -26,6 +26,13 @@ const TIME_KEY = 'selected_time';
 
 export default function TodayScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/onboarding1');
+    }
+  }, [user, router]);
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
@@ -209,17 +216,8 @@ export default function TodayScreen() {
 
   const saveTasks = async (todayTasks) => {
     try {
-      // Get auth data from storage
-      const authData = await storage.getAuthData();
-      const user = authData?.user;
-      const accessToken = authData?.accessToken;
-      
-      console.log('Auth state:', { 
-        hasUser: !!user, 
-        userId: user?.id,
-        hasAccessToken: !!accessToken 
-      });
-      
+      // Get auth data from store instead of storage
+      const { user, accessToken } = useAuthStore.getState();
       const today = moment().format('YYYY-MM-DD');
       
       // If user is logged in, save to Supabase first
@@ -229,6 +227,7 @@ export default function TodayScreen() {
           const tasksWithUser = todayTasks.map(task => ({
             ...task,
             user_id: user.id,
+            user_email: user.email,
             synced_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }));
@@ -248,7 +247,7 @@ export default function TodayScreen() {
           console.log('Current user:', { 
             id: user.id, 
             email: user.email,
-            accessToken: accessToken.substring(0, 10) + '...'
+            accessToken: accessToken?.substring(0, 10) + '...' || 'missing'
           });
           console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
           
@@ -259,7 +258,6 @@ export default function TodayScreen() {
             console.error('Detailed error:', upsertError);
             throw upsertError;
           }
-          if (upsertError) throw upsertError;
         } catch (syncError) {
           console.error('Error saving to Supabase:', syncError);
           // Continue with local storage even if Supabase save fails

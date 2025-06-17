@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Platform, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
@@ -51,65 +51,94 @@ export default function RootLayout() {
   });
   const [initializing, setInitializing] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [hasPrepared, setHasPrepared] = useState(false);
   const { initialize, user } = useAuthStore();
 
-  useEffect(() => {
-    if (!fontsLoaded) return;
+  const prepareApp = useCallback(async () => {
+    if (hasPrepared) {
+      console.log('App already prepared, skipping...');
+      return;
+    }
 
-    async function prepare() {
-      try {
-        // Initialize auth state first
-        await initialize();
-        
-        // Check onboarding status
-        const onboardingStatus = await storage.getItem('onboardingComplete');
-        const hasCompletedOnboarding = onboardingStatus === 'true';
-        
+    try {
+      console.log('Starting app preparation...');
+      
+      // Check onboarding status first
+      const onboardingStatus = await storage.getItem('onboardingComplete');
+      const hasCompletedOnboarding = onboardingStatus === 'true';
+      
+      console.log('Onboarding status:', {
+        onboardingStatus,
+        hasCompletedOnboarding
+      });
+      
+      // Always initialize auth, but handle the state properly
+      await initialize();
+      
+      console.log('Auth initialization complete, user:', !!user);
+      
+      if (user) {
         // If user exists but onboarding not marked complete, mark it complete
-        if (user && !hasCompletedOnboarding) {
+        if (!hasCompletedOnboarding) {
           await storage.setItem('onboardingComplete', 'true');
           setIsOnboardingComplete(true);
         } else {
-          setIsOnboardingComplete(hasCompletedOnboarding);
+          setIsOnboardingComplete(true);
         }
 
         // Register for push notifications if user is logged in
-        if (user) {
-          await registerForPushNotifications();
-          await syncReminders();
-        }
-
-        setInitializing(false);
-        await SplashScreen.hideAsync();
-      } catch (e) {
-        console.error('Error during initialization:', e);
-        // On error, reset to onboarding
-        await storage.setItem('onboardingComplete', 'false');
-        setIsOnboardingComplete(false);
-        setInitializing(false);
-        await SplashScreen.hideAsync();
+        await Promise.all([
+          registerForPushNotifications(),
+          syncReminders()
+        ]);
+      } else {
+        // If no user, check if onboarding is complete
+        setIsOnboardingComplete(hasCompletedOnboarding);
       }
-    }
 
-    prepare();
-  }, [fontsLoaded, user]);
+      console.log('Final onboarding state:', {
+        isOnboardingComplete: hasCompletedOnboarding,
+        user: !!user
+      });
+
+      setHasPrepared(true);
+      setInitializing(false);
+      await SplashScreen.hideAsync();
+    } catch (e) {
+      console.error('Error during initialization:', e);
+      // On error, reset to onboarding
+      await storage.setItem('onboardingComplete', 'false');
+      setIsOnboardingComplete(false);
+      setHasPrepared(true);
+      setInitializing(false);
+      await SplashScreen.hideAsync();
+    }
+  }, [initialize, hasPrepared]);
+
+  useEffect(() => {
+    if (fontsLoaded && !hasPrepared) {
+      prepareApp();
+    }
+  }, [fontsLoaded, hasPrepared, prepareApp]);
 
   if (!fontsLoaded || initializing) {
     return null;
   }
 
+  // Determine which layout to show - only check onboarding status
+  const showOnboarding = !isOnboardingComplete;
+  
+  console.log('Layout decision:', {
+    showOnboarding,
+    isOnboardingComplete,
+    user: !!user
+  });
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {!user && isOnboardingComplete ? (
-        <View style={{ flex: 1 }}>
-          {storage.setItem('onboardingComplete', 'false')}
-          <OnboardingLayout />
-        </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          {isOnboardingComplete ? <MainLayout /> : <OnboardingLayout />}
-        </View>
-      )}
+      <View style={{ flex: 1 }}>
+        {showOnboarding ? <OnboardingLayout /> : <MainLayout />}
+      </View>
     </GestureHandlerRootView>
   );
 }

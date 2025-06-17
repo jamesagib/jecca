@@ -48,7 +48,7 @@ export async function signInWithGoogleIdToken(idToken) {
 export async function sendOtp(email) {
   const body = JSON.stringify({
     email,
-    type: 'email', // Required for OTP code (keep this)
+    type: 'sms', // Changed from 'email' to 'sms' to get OTP code instead of magic link
   });
   console.log('OTP Request Body:', body);
   const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {

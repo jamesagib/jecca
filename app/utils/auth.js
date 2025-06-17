@@ -87,6 +87,10 @@ const useAuthStore = create((set) => ({
       set({ loading: true });
       const authData = await storage.getAuthData();
       
+      // Check if onboarding is complete
+      const onboardingStatus = await storage.getItem('onboardingComplete');
+      const hasCompletedOnboarding = onboardingStatus === 'true';
+      
       if (authData?.user?.id && authData?.accessToken) {
         // Validate the token by making a test API call
         try {
@@ -109,22 +113,46 @@ const useAuthStore = create((set) => ({
           } else {
             console.log('Auth token validation failed, clearing auth data');
             await storage.clearAuthData();
+            set({ 
+              user: null,
+              accessToken: null,
+              loading: false,
+              initialized: true 
+            });
+            return;
           }
         } catch (error) {
           console.error('Error validating auth token:', error);
           await storage.clearAuthData();
+          set({ 
+            user: null,
+            accessToken: null,
+            loading: false,
+            initialized: true 
+          });
+          return;
         }
-      } else {
-        console.log('No valid auth data found during initialization');
-        await storage.clearAuthData();
       }
       
-      set({ 
-        user: null,
-        accessToken: null,
-        loading: false, 
-        initialized: true 
-      });
+      console.log('No valid auth data found during initialization');
+      
+      // If onboarding is complete and no user, don't clear auth data
+      if (hasCompletedOnboarding) {
+        console.log('Onboarding complete, keeping existing auth state');
+        set({ 
+          user: authData?.user || null,
+          accessToken: authData?.accessToken || null,
+          loading: false, 
+          initialized: true 
+        });
+      } else {
+        set({ 
+          user: null,
+          accessToken: null,
+          loading: false, 
+          initialized: true 
+        });
+      }
     } catch (error) {
       console.error('Error initializing auth:', error);
       await storage.clearAuthData();
@@ -163,14 +191,26 @@ const useAuthStore = create((set) => ({
     try {
       const { data, error } = await verifyOtp(email, token);
       if (error) throw new Error(error.message || 'Invalid code.');
-      await storage.saveAuthData(data.user, data.session?.access_token);
+      
+      // Ensure we have both user and session data
+      if (!data.user || !data.session) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Save auth data and update state
+      await storage.saveAuthData(data.user, data.session.access_token);
       set({ 
         user: data.user, 
-        accessToken: data.session?.access_token, 
+        accessToken: data.session.access_token, 
         loading: false, 
         otpSent: false, 
-        otpEmail: '' 
+        otpEmail: '',
+        initialized: true
       });
+
+      // Set onboarding complete since we have a valid user
+      await storage.setItem('onboardingComplete', 'true');
+      
       return { data };
     } catch (error) {
       set({ error: error.message || 'Invalid code.', loading: false });

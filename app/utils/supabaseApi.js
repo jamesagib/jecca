@@ -217,4 +217,62 @@ export async function deleteReminder(reminderId, userId, accessToken) {
     console.error('Error deleting reminder:', error);
     return { data: null, error };
   }
+}
+
+// --- AUTH ---
+export async function sendOtp(email) {
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/signin`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        options: {
+          data: {
+            type: 'otp'
+          }
+        }
+      }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to send OTP');
+    }
+
+    return { data: await res.json(), error: null };
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return { data: null, error };
+  }
+}
+
+export async function verifyOtp(email, token) {
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        token,
+        type: 'email'
+      }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to verify OTP');
+    }
+
+    return { data: await res.json(), error: null };
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    return { data: null, error };
+  }
 } 
