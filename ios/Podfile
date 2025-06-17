@@ -38,7 +38,7 @@ elsif podfile_properties.key?('ios.flipper') then
 end
 
 target 'jecca' do
-  use_modular_headers!
+  # use_modular_headers!  # Disabled because it conflicts with New Architecture (duplicates ReactCommon)
   use_expo_modules!
   config = use_native_modules!
 
