@@ -47,8 +47,12 @@ export default function SettingsScreen() {
     };
   }, []);
 
-  const toggleSwitch = () => {
-    setRemoveAfterCompletion(!removeAfterCompletion);
+  const toggleSwitch = async () => {
+    try {
+      await setRemoveAfterCompletion(!removeAfterCompletion);
+    } catch (err) {
+      console.error('Failed to toggle removeAfterCompletion:', err);
+    }
   };
 
   const handleAuthAction = async () => {

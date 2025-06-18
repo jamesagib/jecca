@@ -137,30 +137,14 @@ export default function TomorrowScreen() {
       }
 
       // Fallback to local notifications if not logged in or Supabase fails
-      const timeStr = task.time.toLowerCase();
-      const [time, period] = timeStr.match(/(\d+):?(\d*)\s*(am|pm)/i).slice(1);
-      let hours = parseInt(time);
-      let minutes = 0;
+      const tomorrow = moment().add(1, 'day');
+      let targetTime = moment(task.time.toUpperCase(), ["h:mma", "ha"]);
 
-      if (timeStr.includes(':')) {
-        minutes = parseInt(timeStr.split(':')[1].replace(/[^\d]/g, ''));
-      }
-
-      if (period.toLowerCase() === 'pm' && hours !== 12) {
-        hours += 12;
-      } else if (period.toLowerCase() === 'am' && hours === 12) {
-        hours = 0;
-      }
-
-      let targetTime = moment()
-        .add(1, 'day')
-        .hours(hours)
-        .minutes(minutes)
-        .seconds(0)
-        .milliseconds(0);
-
-      console.log('Current time:', now.format('YYYY-MM-DD HH:mm:ss'));
-      console.log('Target time:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
+      targetTime.set({
+        year: tomorrow.year(),
+        month: tomorrow.month(),
+        date: tomorrow.date(),
+      });
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -445,7 +429,7 @@ export default function TomorrowScreen() {
         <View style={styles.tabBar}>
           <TouchableOpacity 
             style={styles.tab}
-            onPress={() => router.push('/tabs/today')}
+            onPress={() => router.navigate('/tabs/today')}
           >
             <Text style={[styles.tabText, { color: '#CFCFCF' }]}>today</Text>
           </TouchableOpacity>

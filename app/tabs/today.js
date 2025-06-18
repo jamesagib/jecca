@@ -128,65 +128,32 @@ export default function TodayScreen() {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
 
-      const timeStr = task.time.toLowerCase();
-      const [time, period] = timeStr.match(/(\d+):?(\d*)\s*(am|pm)/i).slice(1);
-      let hours = parseInt(time);
-      let minutes = 0;
+      // Parse task.time (e.g. "7:30pm", "9am") and build a Moment object for TODAY first
+      let targetTime = moment(task.time.toUpperCase(), ["h:mma", "ha"]);
 
-      // Handle cases like "7:30am" vs "7am"
-      if (timeStr.includes(':')) {
-        minutes = parseInt(timeStr.split(':')[1].replace(/[^\d]/g, ''));
-      }
-
-      // Adjust hours for PM
-      if (period.toLowerCase() === 'pm' && hours !== 12) {
-        hours += 12;
-      } else if (period.toLowerCase() === 'am' && hours === 12) {
-        hours = 0;
-      }
-
-      // Get the current date components
+      // Set the date component to today
       const now = moment();
-      let targetTime = moment()
-        .hours(hours)
-        .minutes(minutes)
-        .seconds(0)
-        .milliseconds(0);
-
-      console.log('Current time:', now.format('YYYY-MM-DD HH:mm:ss'));
-      console.log('Target time:', targetTime.format('YYYY-MM-DD HH:mm:ss'));
-
-      // If time has already passed today, schedule for tomorrow
-      if (targetTime.isBefore(now)) {
-        targetTime = moment()
-          .add(1, 'day')
-          .hours(hours)
-          .minutes(minutes)
-          .seconds(0)
-          .milliseconds(0);
-        console.log(`Time already passed, scheduling for tomorrow at ${targetTime.format('YYYY-MM-DD HH:mm:ss')}`);
-      }
-
-      // Schedule the notification with exact trigger time
-      const triggerDate = targetTime.toDate();
-      console.log('Scheduling notification for:', {
-        title: task.title,
-        triggerTimestamp: triggerDate.getTime(),
-        triggerISO: triggerDate.toISOString(),
-        timeFromNow: moment.duration(targetTime.diff(now)).humanize()
+      targetTime.set({
+        year: now.year(),
+        month: now.month(),
+        date: now.date(),
       });
+
+      // If the scheduled time has already passed today, bump to tomorrow
+      if (targetTime.isBefore(now)) {
+        targetTime.add(1, "day");
+      }
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Reminder',
-          body: `${task.title}`,
+          title: "Reminder",
+          body: task.title,
           sound: true,
-          priority: 'max'
+          priority: "max",
         },
         trigger: {
-          channelId: 'reminders',
-          date: triggerDate,
-          seconds: Math.max(1, Math.floor(targetTime.diff(now) / 1000)), // Ensure at least 1 second delay
+          channelId: "reminders",
+          date: targetTime.toDate(),
         },
       });
 
@@ -401,14 +368,14 @@ export default function TodayScreen() {
                   <View style={styles.taskTextContainer}>
                     <Text style={[
                       styles.taskText,
-                      { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                      { color: doneTasks.includes(task.id) ? '#000000' : isOverdue(task.time) ? '#FF3B30' : '#CFCFCF' }
                     ]}>
                       {task.title}
                     </Text>
                     <View style={styles.timeContainer}>
                       <Text style={[
                         styles.timeText,
-                        { color: doneTasks.includes(task.id) ? '#000000' : '#CFCFCF' }
+                        { color: doneTasks.includes(task.id) ? '#000000' : isOverdue(task.time) ? '#FF3B30' : '#CFCFCF' }
                       ]}>
                         {task.time}
                       </Text>
@@ -454,7 +421,7 @@ export default function TodayScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.tab}
-            onPress={() => router.push('/tabs/tomorrow')}
+            onPress={() => router.navigate('/tabs/tomorrow')}
           >
             <Text style={[styles.tabText, { color: '#CFCFCF' }]}>tomorrow</Text>
           </TouchableOpacity>
