@@ -34,8 +34,12 @@ module.exports = ({
           projectId: "0be2e439-23c0-41fb-9351-824b644439c0"
         },
       },
+      // Provide universal app icon so EAS generates an asset catalog
+      icon: './assets/jecca.png',
       scheme: 'jecca', // This is important for deep linking
       ios: {
+        // Explicit iOS icon (overrides universal if provided)
+        icon: './assets/jecca.png',
         bundleIdentifier: 'com.webcheer.jecca',
         config: {
           googleSignIn: {

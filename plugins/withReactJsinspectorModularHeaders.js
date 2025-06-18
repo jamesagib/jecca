@@ -14,11 +14,22 @@ module.exports = function withReactJsinspectorModularHeaders(config) {
       if (!fs.existsSync(podfilePath)) return config;
 
       let contents = fs.readFileSync(podfilePath, 'utf8');
-      const marker = "set_use_modular_headers_for_pod('React-jsinspector')";
 
-      if (!contents.includes(marker)) {
-        const snippet = `\npre_install do |installer|\n  installer.${marker}\nend\n`;
-        contents += snippet;
+      // CocoaPods ≥1.16 removed `set_use_modular_headers_for_pod`, so instead
+      // we safely add the global `use_modular_headers!` directive, just once.
+      const directive = 'use_modular_headers!';
+
+      if (!contents.includes(directive)) {
+        // Insert `use_modular_headers!` right before the first `target` or at
+        // the end of the file if a target is not found (unlikely).
+        const targetMatch = contents.match(/^[ \t]*target\s+'[\w-]+'/m);
+        if (targetMatch) {
+          const index = targetMatch.index;
+          contents = `${contents.slice(0, index)}${directive}\n\n${contents.slice(index)}`;
+        } else {
+          contents += `\n${directive}\n`;
+        }
+
         fs.writeFileSync(podfilePath, contents);
       }
       return config;
