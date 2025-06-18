@@ -19,7 +19,7 @@ export default function GoogleAuth({ onSuccess }) {
     iosClientId: Constants.expoConfig?.extra?.iosClientId,
     expoClientId: Constants.expoConfig?.extra?.expoClientId,
     responseType: "id_token",
-    scopes: ['profile', 'email'],
+    scopes: ['openid', 'profile', 'email'],
     extraParams: {
       access_type: 'offline',
       prompt: 'select_account'
