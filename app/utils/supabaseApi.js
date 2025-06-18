@@ -273,7 +273,7 @@ export async function verifyOtp(email, token) {
       body: JSON.stringify({
         email,
         token,
-        type: 'magiclink',
+        type: 'email',
         gotrue_meta_security: {}
       }),
     });
@@ -335,7 +335,8 @@ export async function sendOtp(email) {
       },
       body: JSON.stringify({
         email,
-        type: 'magiclink',
+        type: 'email',
+        create_user: true, // allow sign-up if user doesn't exist
         gotrue_meta_security: {},
         options: {
           data: {
