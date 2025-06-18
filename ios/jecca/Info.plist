@@ -6,8 +6,6 @@
     <true/>
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
-    <key>CFBundleIconName</key>
-    <string>AppIcon</string>
     <key>CFBundleDisplayName</key>
     <string>jecca</string>
     <key>CFBundleExecutable</key>
