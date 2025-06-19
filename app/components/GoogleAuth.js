@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Platform } from 'react-native';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useAuthStore } from '../utils/auth';
 import * as WebBrowser from 'expo-web-browser';
@@ -44,11 +45,36 @@ export default function GoogleAuth({ onSuccess }) {
       console.log('Google auth result:', result);
       
       if (result?.type === 'success') {
-        const { authentication } = result;
-        console.log('Authentication:', authentication);
-        
+        let idToken = result?.params?.id_token;
+
+        // If the implicit flow didn't return an id_token, exchange the code for tokens
+        if (!idToken && result?.params?.code) {
+          const clientId = Platform.select({
+            ios: Constants.expoConfig?.extra?.iosClientId,
+            android: Constants.expoConfig?.extra?.androidClientId,
+            default: Constants.expoConfig?.extra?.expoClientId,
+          });
+
+          console.log('Exchanging auth code for tokens...');
+          const tokenResult = await Google.exchangeCodeAsync({
+            clientId,
+            code: result.params.code,
+            redirectUri,
+            extraParams: {
+              code_verifier: request?.codeVerifier,
+            },
+          });
+
+          console.log('Token exchange result:', tokenResult);
+          idToken = tokenResult?.id_token;
+        }
+
+        if (!idToken) {
+          throw new Error('Unable to obtain ID token from Google');
+        }
+
         // Use the ID token to sign in with Supabase
-        const { data, error } = await signInWithGoogleIdToken(authentication.idToken);
+        const { data, error } = await signInWithGoogleIdToken(idToken);
         console.log('Supabase sign in result:', { data, error });
         
         if (error) {
