@@ -3,6 +3,7 @@ import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useAuthStore } from '../utils/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { signInWithGoogleIdToken } from '../utils/supabaseApi';
 
@@ -14,7 +15,10 @@ export default function GoogleAuth({ onSuccess }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: Constants.expoConfig?.scheme || 'remra' });
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    redirectUri,
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
     iosClientId: Constants.expoConfig?.extra?.iosClientId,
     expoClientId: Constants.expoConfig?.extra?.expoClientId,

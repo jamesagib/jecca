@@ -7,7 +7,7 @@
     "icon": "./assets/jecca.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-    "scheme": "jecca",
+    "scheme": "remra",
     "deepLinking": true,
     "jsEngine": "hermes",
     "splash": {
@@ -30,9 +30,9 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSFaceIDUsageDescription": "Allow jecca to access your Face ID biometric data.",
-        "NSPhotoLibraryUsageDescription": "Allow jecca to access your photos.",
-        "NSPhotoLibraryAddUsageDescription": "Allow jecca to save photos."
+        "NSFaceIDUsageDescription": "Allow remra to access your Face ID biometric data.",
+        "NSPhotoLibraryUsageDescription": "Allow remra to access your photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow remra to save photos."
       },
       "config": {
         "usesNonExemptEncryption": false,
@@ -44,7 +44,7 @@
       "usesIcloudStorage": false,
       "buildNumber": "1",
       "urlScheme": [
-        "com.googleusercontent.apps.731159424189-dk2db5271lpfi8fj7201gjdcvfi94qnk"
+        "remra"
       ]
     },
     "android": {
