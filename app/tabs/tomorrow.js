@@ -140,8 +140,9 @@ export default function TomorrowScreen() {
       }
 
       // Fallback to local notifications if not logged in or Supabase fails
-      const tomorrow = moment().add(1, 'day');
-      let targetTime = moment(task.time.toUpperCase(), ["h:mma", "ha"]);
+      const userTimezone = DEVICE_TIMEZONE;
+      const tomorrow = moment().tz(userTimezone).add(1, 'day');
+      let targetTime = moment.tz(task.time.toUpperCase(), ["h:mma", "ha"], userTimezone);
 
       targetTime.set({
         year: tomorrow.year(),

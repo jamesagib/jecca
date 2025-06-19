@@ -70,7 +70,7 @@ export default function Onboarding1() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>welcome to the simplest app on your phone: jecca.</Text>
+        <Text style={styles.title}>welcome to the simplest app on your phone: remra.</Text>
         <Text style={styles.subtitle}>sign in to save your reminders and sync across devices.</Text>
         
         <View style={styles.authContainer}>

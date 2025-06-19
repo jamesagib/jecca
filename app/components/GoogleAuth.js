@@ -14,7 +14,7 @@ export default function GoogleAuth({ onSuccess }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     androidClientId: Constants.expoConfig?.extra?.androidClientId,
     iosClientId: Constants.expoConfig?.extra?.iosClientId,
     expoClientId: Constants.expoConfig?.extra?.expoClientId,

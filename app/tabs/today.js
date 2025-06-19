@@ -124,11 +124,12 @@ export default function TodayScreen() {
         await Notifications.cancelScheduledNotificationAsync(task.notificationId);
       }
 
-      // Parse task.time (e.g. "7:30pm", "9am") and build a Moment object for TODAY first
-      let targetTime = moment(task.time.toUpperCase(), ["h:mma", "ha"]);
+      // Parse task.time (e.g. "7:30pm", "9am") in the user's timezone
+      const userTimezone = DEVICE_TIMEZONE;
+      let targetTime = moment.tz(task.time.toUpperCase(), ["h:mma", "ha"], userTimezone);
 
-      // Set the date component to today
-      const now = moment();
+      // Set the date component to today (still in userTimezone)
+      const now = moment().tz(userTimezone);
       targetTime.set({
         year: now.year(),
         month: now.month(),

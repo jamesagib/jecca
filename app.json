@@ -13,7 +13,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#CFCFCF",
+      "backgroundColor": "#FFFFFF",
       "imageResizeMode": "contain"
     },
     "ios": {
@@ -21,7 +21,7 @@
       "splash": {
         "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#CFCFCF",
+        "backgroundColor": "#FFFFFF",
         "fadeOutDuration": 500
       },
       "bundleIdentifier": "com.webcheer.jecca",
@@ -56,7 +56,7 @@
       "splash": {
         "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#CFCFCF",
+        "backgroundColor": "#FFFFFF",
         "fadeOutDuration": 500
       }
     },

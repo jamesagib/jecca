@@ -15,8 +15,9 @@ import { registerForPushNotifications } from './utils/notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MenuProvider } from 'react-native-popup-menu';
 
-// Load timezone data
-moment.tz.setDefault('America/New_York');
+// Default to the device's local timezone so all date math is correct across locales
+const deviceTimezone = moment.tz.guess();
+moment.tz.setDefault(deviceTimezone);
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
