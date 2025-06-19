@@ -1,4 +1,4 @@
-package com.jecca
+package com.webcheer.jecca
 
 import android.os.Build
 import android.os.Bundle
