@@ -26,10 +26,14 @@ const TASKS_KEY = 'tasks'; // Use single storage key for all tasks
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
 
+// Get device timezone once
+const DEVICE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export default function TodayScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { loadSettings } = useSettingsStore();
+  const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
 
   const [selected, setSelected] = useState('today');
   const [doneTasks, setDoneTasks] = useState([]);
@@ -114,14 +118,6 @@ export default function TodayScreen() {
     reloadData();
   };
 
-  const toggleSwitch = async () => {
-    const newState = !removeAfterCompletion;
-    useSettingsStore.getState().setRemoveAfterCompletion(newState);
-    await storage.setItem(TOGGLE_KEY, newState.toString());
-  };
-
-  // Removed duplicate notification permission request since it's handled in onboarding
-
   const scheduleNotification = async (task) => {
     try {
       if (task.notificationId) {
@@ -154,6 +150,7 @@ export default function TodayScreen() {
         trigger: {
           channelId: "reminders",
           date: targetTime.toDate(),
+          timeZone: DEVICE_TIMEZONE,
         },
       });
 
@@ -310,17 +307,16 @@ export default function TodayScreen() {
   };
 
   const isOverdue = (time) => {
-    const timeStr = time.toLowerCase();
-    const now = moment();
-    const reminderTime = moment(timeStr, ['ha', 'h:mma']);
-    
-    // Set the reminder time to today's date
-    const todayReminderTime = moment()
-      .hours(reminderTime.hours())
-      .minutes(reminderTime.minutes())
+    if (!time) return false;
+    const parsed = moment(time.toUpperCase(), ["h:mma", "ha"], true);
+    if (!parsed.isValid()) return false;
+
+    const dueToday = moment()
+      .hours(parsed.hours())
+      .minutes(parsed.minutes())
       .seconds(0);
-    
-    return moment().isAfter(todayReminderTime);
+
+    return moment().isAfter(dueToday);
   };
 
   const getEmptyStateMessage = () => {
@@ -451,7 +447,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dateText: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',
   },
@@ -459,7 +455,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   settingsText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',
   },
@@ -485,7 +481,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   taskText: {
-    fontSize: 22,
+    fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#000000',
@@ -494,11 +490,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CFCFCF',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   timeText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#000000',

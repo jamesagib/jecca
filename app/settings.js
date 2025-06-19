@@ -125,13 +125,13 @@ export default function SettingsScreen() {
       visible={isVisible}
       animationType="none"
       statusBarTranslucent
-      onRequestClose={handleClose}
+      onRequestClose={() => handleClose()}
     >
       <View style={styles.container}>
         <TouchableOpacity 
           style={styles.backdrop} 
           activeOpacity={1} 
-          onPress={handleClose}
+          onPress={() => handleClose()}
         />
         <Animated.View 
           style={[

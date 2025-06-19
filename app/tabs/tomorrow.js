@@ -37,6 +37,9 @@ const TASKS_KEY = 'tasks';
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
 
+// Device timezone used for local notification scheduling
+const DEVICE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export default function TomorrowScreen() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
@@ -156,6 +159,7 @@ export default function TomorrowScreen() {
         trigger: {
           channelId: 'reminders',
           date: targetTime.toDate(),
+          timeZone: DEVICE_TIMEZONE,
         },
       });
 
@@ -462,7 +466,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dateText: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',
   },
@@ -470,7 +474,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   settingsText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#000000',
   },
@@ -496,7 +500,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   taskText: {
-    fontSize: 22,
+    fontSize: 25,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#000000',
@@ -505,11 +509,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CFCFCF',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   timeText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Nunito_800ExtraBold',
     textAlign: 'center',
     color: '#000000',

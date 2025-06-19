@@ -100,6 +100,22 @@ export default function RootLayout() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: false,
+                presentation: 'transparentModal',
+                animation: 'none',
+              }}
+            />
+            <Stack.Screen
+              name="timePicker"
+              options={{
+                headerShown: false,
+                presentation: 'transparentModal',
+                animation: 'none',
+              }}
+            />
           </Stack>
         </MenuProvider>
       </GestureHandlerRootView>
