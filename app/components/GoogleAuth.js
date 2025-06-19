@@ -15,7 +15,11 @@ export default function GoogleAuth({ onSuccess }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: Constants.expoConfig?.scheme || 'remra' });
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: Constants.expoConfig?.scheme || 'remra',
+    path: 'oauthredirect',
+    native: 'remra:/oauthredirect',
+  });
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     redirectUri,

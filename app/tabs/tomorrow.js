@@ -40,6 +40,8 @@ const TIME_KEY = 'selected_time';
 // Device timezone used for local notification scheduling
 const DEVICE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+const formatCurrentTime = () => moment().format('h:mma').toLowerCase();
+
 export default function TomorrowScreen() {
   const router = useRouter();
   const user = useAuthStore(state => state.user);
@@ -49,7 +51,7 @@ export default function TomorrowScreen() {
   const [tasks, setTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
-  const [selectedTime, setSelectedTime] = useState('7:00am');
+  const [selectedTime, setSelectedTime] = useState(formatCurrentTime());
   const tabs = ['today', 'tomorrow'];
   const inputRef = useRef(null);
   const [isInputVisible, setIsInputVisible] = useState(false);
@@ -73,6 +75,8 @@ export default function TomorrowScreen() {
       
       if (storedTime) {
         setSelectedTime(storedTime);
+      } else {
+        setSelectedTime(formatCurrentTime());
       }
     };
 
@@ -98,6 +102,8 @@ export default function TomorrowScreen() {
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
           setSelectedTime(storedTime);
+        } else {
+          setSelectedTime(formatCurrentTime());
         }
         
         // Reload tasks

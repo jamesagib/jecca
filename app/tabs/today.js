@@ -29,6 +29,8 @@ const TIME_KEY = 'selected_time';
 // Get device timezone once
 const DEVICE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+const formatCurrentTime = () => moment().format('h:mma').toLowerCase();
+
 export default function TodayScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -39,7 +41,7 @@ export default function TodayScreen() {
   const [doneTasks, setDoneTasks] = useState([]);
   const [text, setText] = useState('');
   const [tasks, setTasks] = useState([]);
-  const [selectedTime, setSelectedTime] = useState('7:00am');
+  const [selectedTime, setSelectedTime] = useState(formatCurrentTime());
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
 
@@ -62,6 +64,8 @@ export default function TodayScreen() {
       
       if (storedTime) {
         setSelectedTime(storedTime);
+      } else {
+        setSelectedTime(formatCurrentTime());
       }
     };
 
@@ -83,6 +87,8 @@ export default function TodayScreen() {
         const storedTime = await storage.getItem(TIME_KEY);
         if (storedTime) {
           setSelectedTime(storedTime);
+        } else {
+          setSelectedTime(formatCurrentTime());
         }
         
         // Reload tasks
