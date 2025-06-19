@@ -15,10 +15,11 @@ export default function GoogleAuth({ onSuccess }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
+  const reservedClientId = Constants?.expoConfig?.ios?.config?.googleSignIn?.reservedClientId;
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: Constants.expoConfig?.scheme || 'remra',
     path: 'oauthredirect',
-    native: 'remra:/oauthredirect',
+    native: reservedClientId ? `${reservedClientId}:/oauthredirect` : undefined,
   });
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({

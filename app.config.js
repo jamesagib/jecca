@@ -20,8 +20,8 @@ module.exports = ({
     ...config, // Preserves existing app.json configurations
     expo: {
       ...config.expo, // Preserves existing expo configurations
-      name: config.expo?.name || 'jecca', // Ensure a default name
-      slug: config.expo?.slug || 'jecca', // Ensure a default slug
+      name: config.expo?.name || 'remra', // Ensure a default name
+      slug: config.expo?.slug || 'remra', // Ensure a default slug
       extra: {
         ...config.expo?.extra, // Preserves other existing extra configurations
         supabaseUrl: process.env.SUPABASE_URL,
@@ -36,7 +36,7 @@ module.exports = ({
       },
       // Provide universal app icon so EAS generates an asset catalog
       icon: './assets/jecca.png',
-      scheme: 'jecca', // This is important for deep linking
+      scheme: 'remra', // This is important for deep linking and must match bundle id
       ios: {
         // Explicit iOS icon (overrides universal if provided)
         icon: './assets/jecca.png',
