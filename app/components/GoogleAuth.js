@@ -16,7 +16,24 @@ export default function GoogleAuth({ onSuccess }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
-  const reservedClientId = Constants?.expoConfig?.ios?.config?.googleSignIn?.reservedClientId;
+  // In production (App Store / TestFlight) Constants.expoConfig is stripped out, so we
+  // fall back to compile-time environment variables that were injected by Metro.
+  const reservedClientId =
+    Constants?.expoConfig?.ios?.config?.googleSignIn?.reservedClientId ??
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_RESERVED_CLIENT_ID;
+
+  const androidClientId =
+    Constants.expoConfig?.extra?.androidClientId ??
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+
+  const iosClientId =
+    Constants.expoConfig?.extra?.iosClientId ??
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+  const expoClientId =
+    Constants.expoConfig?.extra?.expoClientId ??
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: Constants.expoConfig?.scheme || 'remra',
     path: 'oauthredirect',
@@ -25,15 +42,15 @@ export default function GoogleAuth({ onSuccess }) {
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     redirectUri,
-    androidClientId: Constants.expoConfig?.extra?.androidClientId,
-    iosClientId: Constants.expoConfig?.extra?.iosClientId,
-    expoClientId: Constants.expoConfig?.extra?.expoClientId,
+    androidClientId,
+    iosClientId,
+    expoClientId,
     responseType: "id_token",
     scopes: ['openid', 'profile', 'email'],
     extraParams: {
       access_type: 'offline',
-      prompt: 'select_account'
-    }
+      prompt: 'select_account',
+    },
   });
 
   const handleGoogleSignIn = async () => {
@@ -50,9 +67,9 @@ export default function GoogleAuth({ onSuccess }) {
         // If the implicit flow didn't return an id_token, exchange the code for tokens
         if (!idToken && result?.params?.code) {
           const clientId = Platform.select({
-            ios: Constants.expoConfig?.extra?.iosClientId,
-            android: Constants.expoConfig?.extra?.androidClientId,
-            default: Constants.expoConfig?.extra?.expoClientId,
+            ios: iosClientId,
+            android: androidClientId,
+            default: expoClientId,
           });
 
           console.log('Exchanging auth code for tokens...');

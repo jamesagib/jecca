@@ -31,7 +31,7 @@ module.exports = ({
         expoClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         eas: {
           ...(config.expo?.extra?.eas || {}),
-          projectId: "0be2e439-23c0-41fb-9351-824b644439c0"
+          projectId: "a2bef493-163f-47bd-8206-455ebfb93681"
         },
       },
       // Provide universal app icon so EAS generates an asset catalog
