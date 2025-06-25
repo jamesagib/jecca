@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Platform } from 'react-native';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { useAuthStore } from '../utils/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -12,6 +12,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function GoogleAuth({ onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const comingSoon = true; // TODO: flip to false when Google Sign-in is re-enabled
   const setError = useAuthStore((state) => state.setError);
   const setUser = useAuthStore((state) => state.setUser);
   const setAccessToken = useAuthStore((state) => state.setAccessToken);
@@ -119,19 +120,43 @@ export default function GoogleAuth({ onSuccess }) {
   };
 
   return (
-    <TouchableOpacity 
-      style={[styles.button, loading && styles.disabled]} 
-      onPress={handleGoogleSignIn}
-      disabled={loading || !request}
-    >
-      <Text style={styles.buttonText}>
-        {loading ? 'Signing in...' : 'Continue with Google'}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.button, (loading || comingSoon) && styles.disabled]}
+        onPress={handleGoogleSignIn}
+        disabled={loading || comingSoon || !request}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Signing in...' : 'Continue with Google'}
+        </Text>
+      </TouchableOpacity>
+      {comingSoon && (
+        <View style={styles.blurOverlay} pointerEvents="none">
+          <Text style={styles.blurText}>Coming Soon</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    position: 'relative',
+    width: '100%',
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  blurText: {
+    color: '#888',
+    fontSize: 16,
+    fontFamily: 'Nunito_800ExtraBold',
+    textTransform: 'lowercase',
+  },
   button: {
     backgroundColor: '#4285F4',
     padding: 16,
