@@ -42,7 +42,7 @@ env:
 jobs:
   check-skip:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     steps:
       - name: Skip CI check
         run: echo "Proceeding with workflow"
@@ -61,26 +61,14 @@ jobs:
           cache: "npm"
 
       - name: 📦 Install dependencies
-        run: npm ci
-
-  build-and-deploy:
-    needs: test
-    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) || github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest
-    steps:
-      - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🏗 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: 📦 Install dependencies
         run: |
           npm ci
+          # Add missing SVG transformer packages just for CI build (keeps lockfile untouched)
+          npm install react-native-svg react-native-svg-transformer --no-save
           npm install -g eas-cli@latest
+
+      - name: 🔧 Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
       - name: 📱 Setup EAS build cache
         uses: actions/cache@v3
