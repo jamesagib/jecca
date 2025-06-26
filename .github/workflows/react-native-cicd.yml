@@ -63,8 +63,6 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm ci
-          # Add missing SVG transformer packages just for CI build (keeps lockfile untouched)
-          npm install react-native-svg react-native-svg-transformer --no-save
           npm install -g eas-cli@latest
 
       - name: 🔧 Select Xcode 15.4
