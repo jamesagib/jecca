@@ -47,9 +47,9 @@ jobs:
       - name: Skip CI check
         run: echo "Proceeding with workflow"
 
-  test:
+  build-and-deploy:
     needs: check-skip
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
@@ -88,7 +88,7 @@ jobs:
           # Check if jq is installed, if not install it
           if ! command -v jq &> /dev/null; then
             echo "Installing jq..."
-            sudo apt-get update && sudo apt-get install -y jq
+            brew update && brew install jq
           fi
 
           # Fix the main entry in package.json
