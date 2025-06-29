@@ -28,7 +28,9 @@
   },
   "submit": {
     "production": {
-      "ascAppId": "6746058846"
+      "ios": {
+        "ascAppId": "6746058846"
+      }
     }
   }
 }
