@@ -54,10 +54,28 @@ target 'jecca' do
 
     # Completely exclude React Runtime modules to avoid conflicts
     installer.pods_project.targets.each do |target|
-      if target.name == 'React-RuntimeHermes' || target.name == 'React-RuntimeCore'
+      if target.name == 'React-RuntimeHermes' || target.name == 'React-RuntimeCore' || target.name == 'React-RuntimeApple'
         target.build_configurations.each do |config|
           config.build_settings['EXCLUDED_SOURCE_FILE_NAMES'] = ['**/*']
           config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'DISABLE_REACT_RUNTIME=1'
+          config.build_settings['OTHER_CFLAGS'] = '$(inherited) -DDISABLE_REACT_RUNTIME=1'
+          config.build_settings['CLANG_WARN_DUPLICATE_METHOD_MATCH'] = 'NO'
+          config.build_settings['CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF'] = 'NO'
+        end
+      end
+    end
+    
+    # Additional fixes for React Native 0.79.x module conflicts
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Disable module redefinition warnings
+        config.build_settings['CLANG_WARN_DUPLICATE_METHOD_MATCH'] = 'NO'
+        config.build_settings['CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF'] = 'NO'
+        
+        # Fix for React Runtime conflicts
+        if target.name.include?('React-Runtime')
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'DISABLE_REACT_RUNTIME=1'
           config.build_settings['OTHER_CFLAGS'] = '$(inherited) -DDISABLE_REACT_RUNTIME=1'
