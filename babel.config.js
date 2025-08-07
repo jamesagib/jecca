@@ -12,25 +12,6 @@ module.exports = function (api) {
     plugins: [
       'react-native-reanimated/plugin',
       '@babel/plugin-proposal-export-namespace-from',
-      [
-        'module-resolver',
-        {
-          root: ['./app'],
-          extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
-          alias: {
-            '@': './app',
-            'stream': 'stream-browserify',
-            'crypto': 'crypto-browserify',
-            'http': 'stream-http',
-            'https': 'https-browserify',
-            'os': 'os-browserify/browser',
-            'url': 'url',
-            'assert': 'assert',
-            'net': false,
-            'tls': false,
-          },
-        },
-      ],
     ],
   };
 };

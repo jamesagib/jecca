@@ -2,11 +2,9 @@ import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { storage } from './utils/storage';
-import { useAuthStore } from './utils/auth';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
 
   const completeOnboarding = async () => {
     try {
@@ -42,15 +40,18 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>turn on notifications (if you want to be reminded).</Text>
-        <Text style={styles.subtitle}>last thing. if you want us to notify you when you need to complete a reminder, click "Allow notifications" below.</Text>
-      </View>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={completeOnboarding}
-        >
-          <Text style={styles.buttonText}>let's go</Text>
+        <Text style={styles.title}>welcome to remra</Text>
+        <Text style={styles.subtitle}>the simplest reminder app on your phone</Text>
+        
+        <View style={styles.features}>
+          <Text style={styles.feature}>• create reminders for today and tomorrow</Text>
+          <Text style={styles.feature}>• get notified at the perfect time</Text>
+          <Text style={styles.feature}>• everything stays on your device</Text>
+          <Text style={styles.feature}>• no accounts, no sync, just reminders</Text>
+        </View>
+        
+        <TouchableOpacity style={styles.button} onPress={completeOnboarding}>
+          <Text style={styles.buttonText}>get started</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -60,50 +61,45 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   content: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    maxWidth: '100%',
-    paddingHorizontal: 20,
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
   title: {
     fontSize: 32,
-    fontFamily: 'Nunito_800ExtraBold',
-    marginBottom: 16,
+    fontWeight: 'bold',
+    color: '#000000',
     textAlign: 'center',
-    textTransform: 'lowercase',
+    marginBottom: 20,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#666',
+    fontSize: 18,
+    color: '#666666',
     textAlign: 'center',
-    textTransform: 'lowercase',
+    marginBottom: 40,
   },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 34,
-    left: 20,
-    right: 20,
+  features: {
+    marginBottom: 60,
+  },
+  feature: {
+    fontSize: 16,
+    color: '#333333',
+    marginBottom: 15,
+    textAlign: 'center',
   },
   button: {
-    backgroundColor: '#000',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 40,
+    paddingVertical: 15,
+    borderRadius: 25,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    textTransform: 'lowercase',
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

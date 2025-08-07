@@ -11,7 +11,6 @@ import Animated, {
   cancelAnimation
 } from 'react-native-reanimated';
 import { storage } from './utils/storage';
-import { useAuthStore } from './utils/auth';
 import useSettingsStore from './store/settingsStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -20,15 +19,13 @@ const TOGGLE_KEY = 'remove_reminder_toggle';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuthStore(state => ({
-    user: state.user,
-    signOut: state.signOut,
-  }));
   const [isVisible, setIsVisible] = useState(true);
   const translateY = useSharedValue(SCREEN_HEIGHT);
   
   const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
   const setRemoveAfterCompletion = useSettingsStore(state => state.setRemoveAfterCompletion);
+  const deletePreviousDayTasks = useSettingsStore(state => state.deletePreviousDayTasks);
+  const setDeletePreviousDayTasks = useSettingsStore(state => state.setDeletePreviousDayTasks);
   const loadSettings = useSettingsStore(state => state.loadSettings);
 
   useEffect(() => {
@@ -55,61 +52,54 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleAuthAction = async () => {
-    if (user) {
-      await signOut();
-      handleClose();
-    } else {
-      handleClose(() => router.replace('/onboarding1'));
+  const toggleDeletePreviousDay = async () => {
+    try {
+      await setDeletePreviousDayTasks(!deletePreviousDayTasks);
+    } catch (err) {
+      console.error('Failed to toggle deletePreviousDayTasks:', err);
     }
   };
 
-  const handleClearReminders = () => {
+  const handleClose = useCallback(() => {
+    translateY.value = withTiming(SCREEN_HEIGHT, {
+      duration: 300,
+    }, () => {
+      runOnJS(() => {
+        setIsVisible(false);
+        router.back();
+      })();
+    });
+  }, [router]);
+
+  const handleResetApp = () => {
     Alert.alert(
-      "Clear All Reminders",
-      "Are you sure you want to clear all reminders? This cannot be undone.",
+      'Reset App',
+      'This will delete all your reminders and reset the app to its initial state. This action cannot be undone.',
       [
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Clear All",
+          text: 'Reset',
+          style: 'destructive',
           onPress: async () => {
-            await storage.removeItem('tasks');
-            handleClose();
+            try {
+              // Clear all local storage
+              await storage.clear();
+              // Reset onboarding
+              await storage.setItem('onboardingComplete', 'false');
+              handleClose();
+              // Navigate to onboarding
+              setTimeout(() => {
+                router.replace('/onboarding3');
+              }, 100);
+            } catch (error) {
+              console.error('Error resetting app:', error);
+              Alert.alert('Error', 'Failed to reset app. Please try again.');
+            }
           },
-          style: "destructive"
-        }
+        },
       ]
     );
   };
-
-  const handleClose = useCallback((onFinished) => {
-    try {
-      translateY.value = withTiming(SCREEN_HEIGHT, {
-        duration: 250,
-      }, (finished) => {
-        if (finished) {
-          runOnJS(setIsVisible)(false);
-          if (onFinished) {
-            runOnJS(onFinished)();
-          } else {
-            runOnJS(router.back)();
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error during close animation:', error);
-      // Fallback to direct close if animation fails
-      setIsVisible(false);
-      if (onFinished) {
-        onFinished();
-      } else {
-        router.back();
-      }
-    }
-  }, [router, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -124,56 +114,60 @@ export default function SettingsScreen() {
       transparent
       visible={isVisible}
       animationType="none"
-      statusBarTranslucent
-      onRequestClose={() => handleClose()}
+      onRequestClose={handleClose}
     >
-      <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={() => handleClose()}
-        />
-        <Animated.View 
-          style={[
-            styles.sheet,
-            animatedStyle
-          ]}
-        >
-          <View style={styles.handle} />
-          <Text style={styles.title}>settings</Text>
-          
-          <View style={styles.section}>
-            <View style={styles.settingRow}>
-              <Text style={styles.settingText}>Remove reminder after completion</Text>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} onPress={handleClose} />
+        <Animated.View style={[styles.container, animatedStyle]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>settings</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.setting}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>remove completed reminders</Text>
+                <Text style={styles.settingDescription}>
+                  automatically remove reminders after you mark them as complete
+                </Text>
+              </View>
               <Switch
                 value={removeAfterCompletion}
                 onValueChange={toggleSwitch}
+                trackColor={{ false: '#e0e0e0', true: '#000000' }}
+                thumbColor={removeAfterCompletion ? '#ffffff' : '#ffffff'}
               />
             </View>
+
+            <View style={styles.setting}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>delete previous day tasks</Text>
+                <Text style={styles.settingDescription}>
+                  automatically delete tasks from previous days to keep storage clean
+                </Text>
+              </View>
+              <Switch
+                value={deletePreviousDayTasks}
+                onValueChange={toggleDeletePreviousDay}
+                trackColor={{ false: '#e0e0e0', true: '#000000' }}
+                thumbColor={deletePreviousDayTasks ? '#ffffff' : '#ffffff'}
+              />
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.resetButton} onPress={handleResetApp}>
+              <Text style={styles.resetButtonText}>reset app</Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.version}>remra v1.1.1</Text>
+              <Text style={styles.copyright}>© 2024 remra</Text>
+            </View>
           </View>
-
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearReminders}
-          >
-            <Text style={styles.clearButtonText}>Clear reminders</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleAuthAction}
-          >
-            <Text style={styles.signOutText}>
-              {user ? 'sign out' : 'sign up / sign in'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.creditLink}
-            onPress={() => Linking.openURL('https://x.com/@agibjames')}
-          >
-            <Text style={styles.creditText}>made with ❤️ by James Agib</Text>
-          </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
@@ -181,88 +175,101 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
-    backgroundColor: 'transparent',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
   },
-  sheet: {
-    backgroundColor: '#FFFFFF',
+  container: {
+    backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-    height: SCREEN_HEIGHT * 0.43,
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    minHeight: SCREEN_HEIGHT * 0.6,
+    maxHeight: SCREEN_HEIGHT * 0.8,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#CFCFCF',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontFamily: 'Nunito_800ExtraBold',
-    marginBottom: 20,
-    color: '#000000',
-  },
-  section: {
-    borderBottomWidth: 1,
-    borderColor: '#CFCFCF',
-    paddingVertical: 15,
-  },
-  settingRow: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  settingText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#000000',
   },
-  clearButton: {
-    backgroundColor: '#F5F5F5',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
+  closeButton: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  clearButtonText: {
+  closeButtonText: {
+    fontSize: 24,
+    color: '#666666',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  setting: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 20,
+  },
+  settingTitle: {
     fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontWeight: '600',
     color: '#000000',
+    marginBottom: 4,
   },
-  signOutButton: {
-    backgroundColor: '#F5F5F5',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  signOutText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#000000',
-  },
-  creditLink: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  creditText: {
+  settingDescription: {
     fontSize: 14,
-    fontFamily: 'Nunito_800ExtraBold',
+    color: '#666666',
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 20,
+  },
+  resetButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  resetButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: 20,
+  },
+  version: {
+    fontSize: 14,
+    color: '#999999',
+    marginBottom: 5,
+  },
+  copyright: {
+    fontSize: 12,
     color: '#999999',
   },
 });

@@ -7,9 +7,6 @@ import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useFocusEffect } from '@react-navigation/native';
 import { storage } from '../utils/storage';
-import { useAuthStore } from '../utils/auth';
-import { syncReminders, syncDeleteReminder, syncReminderStatus } from '../utils/sync';
-import { upsertReminders, cleanupReminders } from '../utils/supabaseApi';
 import { v4 as uuidv4 } from 'uuid';
 import useSettingsStore from '../store/settingsStore';
 
@@ -22,19 +19,22 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const TASKS_KEY = 'tasks'; // Use single storage key for all tasks
+const TASKS_KEY = 'tasks';
 const TOGGLE_KEY = 'remove_reminder_toggle';
 const TIME_KEY = 'selected_time';
 
-// Get device timezone once
-const DEVICE_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-const formatCurrentTime = () => moment().format('h:mma').toLowerCase();
+const formatCurrentTime = () => {
+  const now = moment();
+  const hour = now.format('h');
+  const minute = now.format('mm');
+  const period = now.format('a').toLowerCase();
+  return `${hour}:${minute}${period}`;
+};
 
 export default function TodayScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
   const removeAfterCompletion = useSettingsStore(state => state.removeAfterCompletion);
+  const deletePreviousDayTasks = useSettingsStore(state => state.deletePreviousDayTasks);
   const loadSettings = useSettingsStore(state => state.loadSettings);
 
   const [selected, setSelected] = useState('today');
@@ -49,6 +49,11 @@ export default function TodayScreen() {
 
   useEffect(() => {
     const loadInitialData = async () => {
+      // Clean up previous day tasks if setting is enabled
+      if (deletePreviousDayTasks) {
+        await storage.cleanupPreviousDayTasks();
+      }
+
       // Load tasks
       const storedTasks = await storage.getItem(TASKS_KEY);
       if (storedTasks) {
@@ -71,27 +76,11 @@ export default function TodayScreen() {
 
     loadInitialData();
     loadSettings();
-  }, []);
+  }, [deletePreviousDayTasks]);
 
   useFocusEffect(
     useCallback(() => {
-      const updateState = async () => {
-        const { user, accessToken } = useAuthStore.getState();
-        
-        // Clean up reminders if user is logged in
-        if (user && accessToken) {
-          await cleanupReminders(user.id, accessToken);
-        }
-        
-        // Update time
-        const storedTime = await storage.getItem(TIME_KEY);
-        if (storedTime) {
-          setSelectedTime(storedTime);
-        } else {
-          setSelectedTime(formatCurrentTime());
-        }
-        
-        // Reload tasks
+      const loadTasks = async () => {
         const storedTasks = await storage.getItem(TASKS_KEY);
         if (storedTasks) {
           const allTasks = JSON.parse(storedTasks);
@@ -100,150 +89,87 @@ export default function TodayScreen() {
           setTasks(filtered);
         }
       };
-      updateState();
+      loadTasks();
     }, [])
   );
 
-  const reloadData = async () => {
-    const storedTasks = await storage.getItem(TASKS_KEY);
-    if (storedTasks) {
-      const today = moment().format('YYYY-MM-DD');
-      const filtered = JSON.parse(storedTasks).filter(task => task.date === today);
-      setTasks(filtered);
-    }
+  const addTask = async () => {
+    if (!text.trim()) return;
 
-    const storedToggle = await storage.getItem(TOGGLE_KEY);
-    if (storedToggle) {
-      useSettingsStore.getState().setRemoveAfterCompletion(storedToggle === 'true');
-    }
-  };
+    const newTask = {
+      id: uuidv4(),
+      title: text.trim(),
+      time: selectedTime,
+      date: moment().format('YYYY-MM-DD'),
+      completed: false,
+      notificationId: null,
+    };
 
-  const clearAllReminders = async () => {
-    await storage.removeItem(TASKS_KEY);
-    setTasks([]);
-    reloadData();
-  };
-
-  const scheduleNotification = async (task) => {
     try {
-      if (task.notificationId) {
-        await Notifications.cancelScheduledNotificationAsync(task.notificationId);
-      }
+      // Schedule local notification
+      const notificationId = await scheduleNotification(newTask);
+      newTask.notificationId = notificationId;
 
-      // Parse task.time (e.g. "7:30pm", "9am") in the user's timezone
-      const userTimezone = DEVICE_TIMEZONE;
-      let targetTime = moment.tz(task.time.toUpperCase(), ["h:mma", "ha"], userTimezone);
+      const updatedTasks = [...tasks, newTask];
+      setTasks(updatedTasks);
+      setText('');
+      setIsInputVisible(false);
 
-      // Set the date component to today (still in userTimezone)
-      const now = moment().tz(userTimezone);
-      targetTime.set({
-        year: now.year(),
-        month: now.month(),
-        date: now.date(),
-      });
+      // Save to local storage
+      await saveTasks(updatedTasks);
 
-      // If the scheduled time has already passed today, bump to tomorrow
-      if (targetTime.isBefore(now)) {
-        targetTime.add(1, "day");
-      }
-
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Reminder",
-          body: task.title,
-          sound: true,
-          priority: "max",
-        },
-        trigger: {
-          channelId: "reminders",
-          date: targetTime.toDate(),
-          timeZone: DEVICE_TIMEZONE,
-        },
-      });
-
-      console.log(`Scheduled notification for ${task.title} at ${targetTime.format('YYYY-MM-DD HH:mm:ss')}`);
-      return notificationId;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      console.error('Error scheduling notification:', error);
-      return null;
+      console.error('Error adding task:', error);
+      Alert.alert('Error', 'Failed to add reminder. Please try again.');
     }
   };
 
-  const toggleTask = async (id) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    const task = tasks.find(t => t.id === id);
-    
-    if (removeAfterCompletion) {
-      if (task?.notificationId) {
-        await Notifications.cancelScheduledNotificationAsync(task.notificationId);
-      }
-      const updatedTasks = tasks.filter(task => task.id !== id);
-      setTasks(updatedTasks);
-      await saveTasks(updatedTasks);
-      await syncDeleteReminder(id);
-    } else {
-      const isCompleted = !doneTasks.includes(id);
-      setDoneTasks((prev) =>
-        isCompleted ? [...prev, id] : prev.filter(taskId => taskId !== id)
-      );
-      await syncReminderStatus(id, isCompleted);
+  const toggleTask = async (taskId) => {
+    const updatedTasks = tasks.map(task =>
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    );
+
+    setTasks(updatedTasks);
+    await saveTasks(updatedTasks);
+
+    // Cancel notification if task is completed
+    const task = updatedTasks.find(t => t.id === taskId);
+    if (task.completed && task.notificationId) {
+      await Notifications.cancelScheduledNotificationAsync(task.notificationId);
     }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Remove completed tasks if setting is enabled
+    if (removeAfterCompletion && task.completed) {
+      setTimeout(async () => {
+        const filteredTasks = updatedTasks.filter(t => !t.completed);
+        setTasks(filteredTasks);
+        await saveTasks(filteredTasks);
+      }, 1000);
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task?.notificationId) {
+      await Notifications.cancelScheduledNotificationAsync(task.notificationId);
+    }
+
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    setTasks(updatedTasks);
+    await saveTasks(updatedTasks);
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const saveTasks = async (todayTasks) => {
     try {
-      // Get auth data from store instead of storage
-      const { user, accessToken } = useAuthStore.getState();
-      const today = moment().format('YYYY-MM-DD');
-      
-      // If user is logged in, save to Supabase first
-      if (user && accessToken) {
-        try {
-          // Add user information to tasks before saving
-          const tasksWithUser = todayTasks.map(task => ({
-            ...task,
-            user_id: user.id,
-            user_email: user.email,
-            synced_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }));
-          
-          // Save directly to Supabase
-          const tasksToSave = tasksWithUser.map(task => ({
-            id: task.id,
-            title: task.title,
-            time: task.time,
-            date: task.date,
-            completed: task.completed || false,
-            user_id: user.id,
-            notification_id: task.notificationId,
-            synced_at: new Date().toISOString()
-          }));
-          
-          console.log('Current user:', { 
-            id: user.id, 
-            email: user.email,
-            accessToken: accessToken?.substring(0, 10) + '...' || 'missing'
-          });
-          console.log('Saving to Supabase:', JSON.stringify(tasksToSave, null, 2));
-          
-          const { error: upsertError, data } = await upsertReminders(tasksToSave, accessToken);
-          console.log('Supabase response:', { data, error: upsertError });
-          
-          if (upsertError) {
-            console.error('Detailed error:', upsertError);
-            throw upsertError;
-          }
-        } catch (syncError) {
-          console.error('Error saving to Supabase:', syncError);
-          // Continue with local storage even if Supabase save fails
-        }
-      }
-
-      // Always maintain local storage as offline fallback
+      // Always maintain local storage
       const storedTasks = await storage.getItem(TASKS_KEY);
       const allTasks = storedTasks ? JSON.parse(storedTasks) : [];
-      const otherDaysTasks = allTasks.filter(task => task.date !== today);
+      const otherDaysTasks = allTasks.filter(task => task.date !== moment().format('YYYY-MM-DD'));
       const newTasks = [...otherDaysTasks, ...todayTasks];
       await storage.setItem(TASKS_KEY, JSON.stringify(newTasks));
     } catch (error) {
@@ -252,183 +178,131 @@ export default function TodayScreen() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (text.trim() === '') return;
-    const currentTime = await storage.getItem(TIME_KEY) || selectedTime;
-    
-    const newTask = {
-      id: uuidv4(),
-      title: text.trim(),
-      time: currentTime,
-      date: moment().format('YYYY-MM-DD'),
-      completed: false,
-    };
+  const scheduleNotification = async (task) => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        return null;
+      }
 
-    const notificationId = await scheduleNotification(newTask);
-    if (notificationId) {
-      newTask.notificationId = notificationId;
-    }
+      const [time, period] = task.time.match(/(\d+):(\d+)(am|pm)/).slice(1);
+      let hour = parseInt(time);
+      const minute = parseInt(period);
+      const ampm = period;
 
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    setText('');
-    setIsInputVisible(false);
-    await saveTasks(updatedTasks);
-  };
+      if (ampm === 'pm' && hour !== 12) hour += 12;
+      if (ampm === 'am' && hour === 12) hour = 0;
 
-  const handleDelete = (id) => {
-    Alert.alert(
-      "Delete Task",
-      "Are you sure you want to delete this task?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "OK",
-          onPress: async () => {
-            const task = tasks.find(t => t.id === id);
-            if (task?.notificationId) {
-              await Notifications.cancelScheduledNotificationAsync(task.notificationId);
-            }
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            const updatedTasks = tasks.filter(task => task.id !== id);
-            setTasks(updatedTasks);
-            await saveTasks(updatedTasks);
-            await syncDeleteReminder(id);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-          }
-        }
-      ]
-    );
-  };
+      const scheduledDate = moment(task.date)
+        .hour(hour)
+        .minute(minute)
+        .second(0)
+        .millisecond(0);
 
-  const saveTimeForTask = async (taskId, time) => {
-    const storedTasks = await storage.getItem(TASKS_KEY);
-    if (storedTasks) {
-      const tasks = JSON.parse(storedTasks);
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, time } : task
-      );
-      await storage.setItem(TASKS_KEY, JSON.stringify(updatedTasks));
-      setTasks(updatedTasks);
+      if (scheduledDate.isBefore(moment())) {
+        return null;
+      }
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Reminder',
+          body: task.title,
+          sound: 'default',
+        },
+        trigger: {
+          date: scheduledDate.toDate(),
+        },
+      });
+
+      return notificationId;
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      return null;
     }
   };
 
-  const isOverdue = (time) => {
-    if (!time) return false;
-    const parsed = moment(time.toUpperCase(), ["h:mma", "ha"], true);
-    if (!parsed.isValid()) return false;
-
-    const dueToday = moment()
-      .hours(parsed.hours())
-      .minutes(parsed.minutes())
-      .seconds(0);
-
-    return moment().isAfter(dueToday);
+  const openTimePicker = () => {
+    router.push('/timePicker');
   };
 
-  const getEmptyStateMessage = () => {
-    if (tasks.length === 0) {
-      return "nothing to do today! \ntake a nap? 😴";
-    }
-    if (tasks.every(task => doneTasks.includes(task.id))) {
-      return "wow, you're on fire! \nall tasks completed! 🎉";
-    }
-    return null;
+  const openSettings = () => {
+    router.push('/settings');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.dateText}>
-              {moment().format('dddd MMM D').toLowerCase()}
+      
+      <View style={styles.header}>
+        <Text style={styles.title}>remra</Text>
+        <TouchableOpacity onPress={openSettings} style={styles.settingsButton}>
+          <Text style={styles.settingsButtonText}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, selected === tab && styles.selectedTab]}
+            onPress={() => {
+              setSelected(tab);
+              if (tab === 'tomorrow') {
+                router.push('/tabs/tomorrow');
+              }
+            }}
+          >
+            <Text style={[styles.tabText, selected === tab && styles.selectedTabText]}>
+              {tab}
             </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          ref={inputRef}
+          style={styles.input}
+          placeholder="add a reminder..."
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={addTask}
+          returnKeyType="done"
+          onFocus={() => setIsInputVisible(true)}
+          onBlur={() => setIsInputVisible(false)}
+        />
+        <TouchableOpacity style={styles.timeButton} onPress={openTimePicker}>
+          <Text style={styles.timeButtonText}>{selectedTime}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.taskList}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={100}
+      >
+        {tasks.map((task) => (
+          <View key={task.id} style={styles.taskItem}>
             <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => router.push('/settings')}
+              style={[styles.checkbox, task.completed && styles.checked]}
+              onPress={() => toggleTask(task.id)}
             >
-              <Text style={styles.settingsText}>settings</Text>
+              {task.completed && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
+            <View style={styles.taskContent}>
+              <Text style={[styles.taskText, task.completed && styles.completedTask]}>
+                {task.title}
+              </Text>
+              <Text style={styles.taskTime}>{task.time}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteTask(task.id)}
+            >
+              <Text style={styles.deleteButtonText}>×</Text>
             </TouchableOpacity>
           </View>
-        </View>
-        
-        <View style={styles.content}>
-          <View style={styles.taskListContainer}>
-            {tasks.map((task, index) => {
-              const isCompleted = doneTasks.includes(task.id);
-              return (
-                <TouchableOpacity
-                  key={task.id}
-                  style={styles.task}
-                  onPress={() => toggleTask(task.id)}
-                  onLongPress={() => handleDelete(task.id)}
-                >
-                  <View style={styles.taskTextContainer}>
-                    <Text style={[
-                      styles.taskText,
-                      { color: doneTasks.includes(task.id) ? '#000000' : isOverdue(task.time) ? '#FF3B30' : '#CFCFCF' }
-                    ]}>
-                      {task.title}
-                    </Text>
-                    <View style={styles.timeContainer}>
-                      <Text style={[
-                        styles.timeText,
-                        { color: doneTasks.includes(task.id) ? '#000000' : isOverdue(task.time) ? '#FF3B30' : '#CFCFCF' }
-                      ]}>
-                        {task.time}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-            
-            {getEmptyStateMessage() && (
-              <Text style={styles.emptyStateText}>
-                {getEmptyStateMessage()}
-              </Text>
-            )}
-            
-            {/* Add Item as part of the list */}
-            <View style={styles.task}>
-              <View style={styles.taskInputContainer}>
-                <TextInput
-                  style={styles.taskText}
-                  placeholder="+ add item..."
-                  placeholderTextColor="#CFCFCF"
-                  value={text}
-                  onChangeText={setText}
-                  onSubmitEditing={handleSubmit}
-                />
-                <TouchableOpacity 
-                  style={styles.timeContainer}
-                  onPress={() => router.push('/timePicker')}
-                >
-                  <Text style={[styles.timeText, { color: '#CFCFCF' }]}>
-                    {selectedTime}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.tabBar}>
-          <TouchableOpacity style={styles.tab}>
-            <Text style={[styles.tabText, { color: '#000000' }]}>today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.tab}
-            onPress={() => router.navigate('/tabs/tomorrow')}
-          >
-            <Text style={[styles.tabText, { color: '#CFCFCF' }]}>tomorrow</Text>
-          </TouchableOpacity>
-        </View>
+        ))}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -437,99 +311,127 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardView: {
-    flex: 1,
+    backgroundColor: '#ffffff',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
-  dateText: {
-    fontSize: 28,
-    fontFamily: 'Nunito_800ExtraBold',
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
     color: '#000000',
   },
   settingsButton: {
-    padding: 8,
+    padding: 10,
   },
-  settingsText: {
-    fontSize: 18,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#000000',
+  settingsButtonText: {
+    fontSize: 24,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  taskListContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  task: {
-    width: '100%',
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  taskTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  taskText: {
-    fontSize: 25,
-    fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
-    color: '#000000',
-  },
-  timeContainer: {
-    borderWidth: 1,
-    borderColor: '#CFCFCF',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  timeText: {
-    fontSize: 18,
-    fontFamily: 'Nunito_800ExtraBold',
-    textAlign: 'center',
-    color: '#000000',
-  },
-  taskInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  tabBar: {
+  tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-    justifyContent: 'center',
+    marginBottom: 20,
   },
   tab: {
-    marginHorizontal: 10,
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  selectedTab: {
+    borderBottomColor: '#000000',
   },
   tabText: {
-    fontSize: 25,
-    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 16,
+    color: '#666666',
   },
-  emptyStateText: {
-    fontSize: 18,
-    fontFamily: 'Nunito_800ExtraBold',
-    color: '#CFCFCF',
-    textAlign: 'center',
-    marginTop: 20,
+  selectedTabText: {
+    color: '#000000',
+    fontWeight: '600',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 10,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  timeButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  timeButtonText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  taskList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    marginRight: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checked: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  taskContent: {
+    flex: 1,
+  },
+  taskText: {
+    fontSize: 16,
+    color: '#000000',
+    marginBottom: 4,
+  },
+  completedTask: {
+    textDecorationLine: 'line-through',
+    color: '#999999',
+  },
+  taskTime: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  deleteButton: {
+    padding: 5,
+  },
+  deleteButtonText: {
+    fontSize: 20,
+    color: '#ff3b30',
   },
 });

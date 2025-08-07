@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 module.exports = ({
   config
 }) => {
@@ -24,11 +22,6 @@ module.exports = ({
       slug: config.expo?.slug || 'remra', // Ensure a default slug
       extra: {
         ...config.expo?.extra, // Preserves other existing extra configurations
-        supabaseUrl: process.env.SUPABASE_URL,
-        supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        expoClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         eas: {
           ...(config.expo?.extra?.eas || {}),
           projectId: "a2bef493-163f-47bd-8206-455ebfb93681"
@@ -41,11 +34,6 @@ module.exports = ({
         // Explicit iOS icon (overrides universal if provided)
         icon: './assets/jecca.png',
         bundleIdentifier: 'com.webcheer.jecca',
-        config: {
-          googleSignIn: {
-            reservedClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_RESERVED_CLIENT_ID
-          }
-        }
       },
       android: {
         package: 'com.webcheer.jecca',
@@ -53,7 +41,11 @@ module.exports = ({
           foregroundImage: './assets/splash-icon.png',
           backgroundColor: '#ffffff'
         }
+      },
+      // Disable new React Runtime to avoid conflicts
+      experiments: {
+        tsconfigPaths: true
       }
-    },
+    }
   };
 }; 

@@ -15,10 +15,8 @@ on:
         type: choice
         description: "Build type to run"
         options:
-          - dev
           - prod-apk
           - prod-aab
-          - ios-dev
           - ios-prod
           - publish-stores
           - all
@@ -81,13 +79,6 @@ jobs:
           echo "EAS CLI version:"
           eas --version
 
-      - name: 📱 Build iOS Development
-        run: |
-          export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
-          eas build --platform ios --profile development --local --non-interactive --output=./app-ios-dev.app
-        env:
-          NODE_ENV: development
-
       - name: 📱 Build iOS Production
         run: |
           export NODE_OPTIONS="--openssl-legacy-provider --max_old_space_size=4096"
@@ -109,6 +100,5 @@ jobs:
         with:
           name: app-builds
           path: |
-            ./app-ios-dev.app
             ./app-ios-prod.ipa
           retention-days: 7
