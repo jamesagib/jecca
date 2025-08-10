@@ -49,7 +49,7 @@
     "moment-timezone": "^0.6.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-native": "0.77.8",
+    "react-native": "0.77.3",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-popup-menu": "^0.18.0",
