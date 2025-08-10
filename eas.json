@@ -23,7 +23,7 @@
       "autoIncrement": true,
       "ios": {
         "resourceClass": "m-medium",
-        "image": "macos-sequoia-15.3-xcode-16.2",
+        "image": "macos-sequoia-15.3-xcode-15.4",
         "env": {
           "RCT_NEW_ARCH_ENABLED": "0",
           "EX_DEV_CLIENT_NETWORK_INSPECTOR": "false"

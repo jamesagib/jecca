@@ -13,7 +13,6 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-use_modular_headers!
 
 target 'jecca' do
   use_expo_modules!
@@ -93,10 +92,26 @@ target 'jecca' do
           config.build_settings['OTHER_CFLAGS'] = '$(inherited) -DRCT_NEW_ARCH_ENABLED=0'
         end
       end
-    end
-  end
+         end
 
-  post_integrate do |installer|
+     # Remove conflicting modulemap files that cause 'Redefinition of module' errors
+     begin
+       modulemap_patterns = [
+         File.join(installer.sandbox.root.to_s, 'Headers', 'Public', 'ReactCommon', '*.modulemap'),
+         File.join(installer.sandbox.root.to_s, 'Headers', 'Public', 'react_runtime', '*.modulemap')
+       ]
+       modulemap_patterns.each do |pattern|
+         Dir.glob(pattern).each do |file_path|
+           Pod::UI.puts "Removing conflicting modulemap: #{file_path}"
+           File.delete(file_path) rescue nil
+         end
+       end
+     rescue => e
+       Pod::UI.warn("Modulemap cleanup failed: #{e}")
+     end
+   end
+ 
+   post_integrate do |installer|
     begin
       expo_patch_react_imports!(installer)
     rescue => e
