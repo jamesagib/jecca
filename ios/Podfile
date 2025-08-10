@@ -34,13 +34,33 @@ target 'jecca' do
   )
 
   post_install do |installer|
-    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false
-    )
+         react_native_post_install(
+       installer,
+       config[:reactNativePath],
+       :mac_catalyst_enabled => false
+     )
 
-    # This is necessary for Xcode 14, because it signs resource bundles by default
+     # Ensure iOS deployment target is high enough for ExpoModulesCore
+     begin
+       min_ios = '15.1'
+       # Apply to all Pods targets
+       installer.pods_project.targets.each do |t|
+         t.build_configurations.each do |cfg|
+           cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios
+         end
+       end
+       # Apply to user project targets
+       installer.aggregate_targets.map(&:user_project).uniq.each do |project|
+         project.build_configurations.each do |cfg|
+           cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios
+         end
+         project.save
+       end
+     rescue => e
+       Pod::UI.warn("Failed to bump deployment target: #{e}")
+     end
+ 
+     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results
       .each do |pod_name, target_installation_result|
