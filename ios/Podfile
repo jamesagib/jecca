@@ -101,10 +101,20 @@ target 'jecca' do
          File.join(installer.sandbox.root.to_s, 'Headers', 'Public', 'react_runtime', '*.modulemap')
        ]
        modulemap_patterns.each do |pattern|
-         Dir.glob(pattern).each do |file_path|
-           Pod::UI.puts "Removing conflicting modulemap: #{file_path}"
-           File.delete(file_path) rescue nil
-         end
+                 Dir.glob(pattern).each do |file_path|
+          Pod::UI.puts "Stubbing conflicting modulemap: #{file_path}"
+          begin
+            if file_path.include?('/ReactCommon/')
+              File.write(file_path, "module ReactCommon {}\n")
+            elsif file_path.include?('/react_runtime/')
+              File.write(file_path, "module react_runtime {}\n")
+            else
+              File.write(file_path, "module Temp {}\n")
+            end
+          rescue => e
+            Pod::UI.warn("Failed to stub modulemap: #{e}")
+          end
+        end
        end
      rescue => e
        Pod::UI.warn("Modulemap cleanup failed: #{e}")
