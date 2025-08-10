@@ -63,6 +63,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@babel/plugin-transform-template-literals": "^7.27.1",
     "@babel/runtime": "^7.27.1",
     "@capacitor/assets": "^3.0.5",
     "@react-native-community/cli": "^13.6.5",

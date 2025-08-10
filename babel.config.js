@@ -10,6 +10,7 @@ module.exports = function (api) {
       ]
     ],
     plugins: [
+      '@babel/plugin-transform-template-literals',
       'react-native-reanimated/plugin',
       '@babel/plugin-proposal-export-namespace-from',
     ],
